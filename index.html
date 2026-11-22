@@ -51,14 +51,13 @@ body.wallpaper .toolbar,body.wallpaper .submenu{display:none}
 <button id="menu" aria-expanded="false" aria-controls="menuActions">⚙ Menu</button>
 </nav>
 <section id="playbackPanel" class="submenu playback" hidden aria-label="Playback">
-<button id="backPlayback">← Back to menu</button>
 <button id="previous" title="Previous camera">← Back</button>
 <button id="next" title="Next camera">Next →</button>
 <button id="hold" aria-pressed="false" title="Stop automatic rotation">Stay here</button>
 <button id="info" aria-pressed="false">Camera info</button>
 </section>
 <aside id="panel" class="submenu" hidden aria-label="Settings">
-<div class="row"><h2>Settings</h2><button id="close">← Back to menu</button></div>
+<h2>Settings</h2>
 <p id="status" class="note" role="status" hidden></p>
 <p>Browser prototype · Local-first · No account or telemetry</p>
 <label for="interval">Rotate every</label><select id="interval"><option value="15">15 minutes</option><option value="30">30 minutes</option><option value="60">60 minutes</option><option value="120">120 minutes</option></select>
@@ -180,18 +179,18 @@ $('next').onclick=retryNext;$('previous').onclick=previous;
 $('hold').onclick=()=>{hold=!hold;$('hold').setAttribute('aria-pressed',String(hold));$('hold').textContent=hold?'Resume rotation':'Stay here';refreshEligibility();schedule()};
 $('info').onclick=()=>{state.showInfo=!state.showInfo;$('showInfo').checked=state.showInfo;save();display()};
 const branches = {
-  playback: { panel: 'playbackPanel', back: 'backPlayback' },
-  settings: { panel: 'panel', back: 'close' }
+  playback: 'playbackPanel',
+  settings: 'panel'
 };
 let activeBranch = null;
 function openBranch(branch) {
   const previous = activeBranch;
   activeBranch = branch;
-  for (const [id, controls] of Object.entries(branches)) {
-    $(controls.panel).hidden = id !== branch;
+  for (const [id, panel] of Object.entries(branches)) {
+    $(panel).hidden = id !== branch;
     $(id).setAttribute('aria-expanded', String(id === branch));
   }
-  if (branch) $(branches[branch].back).focus();
+  if (branch) $(branches[branch]).querySelector('button, select').focus();
   else if (previous) $(previous).focus();
 }
 function menu(open) {
@@ -202,9 +201,8 @@ function menu(open) {
   else $('menu').focus();
 }
 $('menu').onclick = () => menu($('menuActions').hidden);
-for (const [id, controls] of Object.entries(branches)) {
+for (const id of Object.keys(branches)) {
   $(id).onclick = () => openBranch(activeBranch === id ? null : id);
-  $(controls.back).onclick = () => openBranch(null);
 }
 $('interval').value=String(state.interval);$('interval').onchange=()=>{state.interval=Number($('interval').value);save();schedule()};
 $('startMuted').checked=state.muted;$('startMuted').onchange=()=>{state.muted=$('startMuted').checked;save();$('video').defaultMuted=state.muted;$('video').muted=state.muted;refreshEligibility();schedule()};
