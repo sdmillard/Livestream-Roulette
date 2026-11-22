@@ -1,7 +1,6 @@
 # Run in Windows PowerShell 5.1 (powershell.exe).
 param(
-    [ValidateRange(1024, 65535)][int]$Port = 8768,
-    [switch]$ShowOverWindows
+    [ValidateRange(1024, 65535)][int]$Port = 8768
 )
 $ErrorActionPreference = 'Stop'
 if ($PSVersionTable.PSEdition -ne 'Desktop') {
@@ -46,4 +45,4 @@ if (-not ('ControlPopover' -as [type])) {
         'System.dll', 'System.Drawing.dll', 'System.Windows.Forms.dll', 'System.Web.Extensions.dll', $core, $forms
     )
 }
-[ControlPopover]::Open("$origin/?controls=1", (Join-Path $data 'ControlWebView'), $ShowOverWindows.IsPresent)
+[ControlPopover]::Open("$origin/?controls=1", (Join-Path $data 'ControlWebView'))

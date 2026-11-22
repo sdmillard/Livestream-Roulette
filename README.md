@@ -17,7 +17,7 @@ Check [source permissions and Wallpaper Engine compatibility](docs/VALIDATION.md
 
 ## Windows controls companion
 
-The companion puts the same cascading menus in a translucent popover on the primary desktop. It positions the gear above the taskbar and shares its settings with Wallpaper Engine over a loopback-only service.
+The companion puts the same cascading menus in a translucent popover above the primary taskbar. The gear stays visible when you switch windows, and open panels close when they lose focus. The companion shares settings with Wallpaper Engine over a loopback-only service.
 
 1. Run `python companion_server.py` from the repository root and leave it running.
 2. Run `powershell.exe -NoProfile -STA -File .\windows\Start-Controls.ps1` from a second terminal. This uses Windows PowerShell 5.1 and the installed Edge WebView2 Runtime. On first run it downloads Microsoft's WebView2 SDK from NuGet.

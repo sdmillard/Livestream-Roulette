@@ -308,7 +308,7 @@ function openCategory(category, restoreFocus = true) {
   if (category) $(categories[category]).querySelector('[tabindex], input, select').focus();
   else if (previous && restoreFocus) $(previous).focus();
 }
-function openBranch(branch) {
+function openBranch(branch, restoreFocus = true) {
   openCategory(null, false);
   const previous = activeBranch;
   activeBranch = branch;
@@ -317,14 +317,14 @@ function openBranch(branch) {
     $(id).setAttribute('aria-expanded', String(id === branch));
   }
   if (branch) $(branches[branch]).querySelector('button, select').focus();
-  else if (previous) $(previous).focus();
+  else if (previous && restoreFocus) $(previous).focus();
 }
-function menu(open) {
-  if (!open) openBranch(null);
+function menu(open, restoreFocus = true) {
+  if (!open) openBranch(null, false);
   $('menuActions').hidden = !open;
   $('menu').setAttribute('aria-expanded', String(open));
   if (open) $('playback').focus();
-  else $('menu').focus();
+  else if (restoreFocus) $('menu').focus();
 }
 $('menu').onclick = () => menu($('menuActions').hidden);
 for (const id of Object.keys(branches)) {
@@ -449,6 +449,9 @@ if (controls || controlledWallpaper) {
   if (controls) {
     $('newKind').querySelector('[value="iframe"]').disabled = true;
     reportControlBounds();
+    window.chrome?.webview?.addEventListener('message', event => {
+      if (event.data === 'collapse' && !$('menuActions').hidden) menu(false, false);
+    });
   }
 } else pickNext();
 })();

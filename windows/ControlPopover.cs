@@ -2,7 +2,6 @@ using System;
 using System.Diagnostics;
 using System.Drawing;
 using System.Runtime.InteropServices;
-using System.Text;
 using System.Web.Script.Serialization;
 using System.Windows.Forms;
 using Microsoft.Web.WebView2.Core;
@@ -10,29 +9,23 @@ using Microsoft.Web.WebView2.WinForms;
 
 public sealed class ControlPopover : Form
 {
-    [DllImport("user32.dll")] private static extern IntPtr GetForegroundWindow();
-    [DllImport("user32.dll")] private static extern IntPtr GetShellWindow();
     [DllImport("user32.dll")] private static extern bool SetProcessDPIAware();
-    [DllImport("user32.dll", CharSet = CharSet.Unicode)]
-    private static extern int GetClassName(IntPtr window, StringBuilder name, int size);
 
     private readonly WebView2 web = new WebView2();
     private readonly Timer desktopTimer = new Timer { Interval = 200 };
     private readonly JavaScriptSerializer json = new JavaScriptSerializer();
     private readonly Uri controlsUrl;
-    private readonly bool showOverWindows;
     private bool reportedReady;
 
     protected override bool ShowWithoutActivation { get { return true; } }
 
-    private ControlPopover(Uri url, string profile, bool testMode)
+    private ControlPopover(Uri url, string profile)
     {
         controlsUrl = url;
-        showOverWindows = testMode;
         Text = "Livestream Roulette Controls";
         FormBorderStyle = FormBorderStyle.None;
         StartPosition = FormStartPosition.Manual;
-        ShowInTaskbar = testMode;
+        ShowInTaskbar = false;
         TopMost = true;
         Opacity = 0.94;
         BackColor = Color.FromArgb(11, 28, 38);
@@ -66,12 +59,12 @@ public sealed class ControlPopover : Form
                 Close();
             }
         };
-        desktopTimer.Tick += delegate
+        Deactivate += delegate
         {
-            var shouldShow = showOverWindows || DesktopIsForeground();
-            if (Visible != shouldShow) Visible = shouldShow;
-            if (Visible) PlaceAboveTaskbar();
+            if (web.CoreWebView2 != null)
+                web.CoreWebView2.PostWebMessageAsString("collapse");
         };
+        desktopTimer.Tick += delegate { PlaceAboveTaskbar(); };
         desktopTimer.Start();
         FormClosed += delegate { desktopTimer.Dispose(); };
     }
@@ -83,15 +76,6 @@ public sealed class ControlPopover : Form
         var height = Math.Min(780, workArea.Height);
         var bounds = new Rectangle(workArea.Right - width, workArea.Bottom - height, width, height);
         if (Bounds != bounds) Bounds = bounds;
-    }
-
-    private bool DesktopIsForeground()
-    {
-        var foreground = GetForegroundWindow();
-        if (foreground == IntPtr.Zero || foreground == Handle || foreground == GetShellWindow()) return true;
-        var name = new StringBuilder(128);
-        GetClassName(foreground, name, name.Capacity);
-        return name.ToString() == "Progman" || name.ToString() == "WorkerW";
     }
 
     private void OpenSourceLink(object sender, CoreWebView2NewWindowRequestedEventArgs args)
@@ -147,11 +131,11 @@ public sealed class ControlPopover : Form
         }
     }
 
-    public static void Open(string url, string profile, bool testMode)
+    public static void Open(string url, string profile)
     {
         SetProcessDPIAware();
         Application.EnableVisualStyles();
-        using (var popover = new ControlPopover(new Uri(url), profile, testMode))
+        using (var popover = new ControlPopover(new Uri(url), profile))
             Application.Run(popover);
     }
 }
