@@ -109,7 +109,7 @@ fieldset label{margin:9px 0}
 <label for="newInstitution">Organization</label><input id="newInstitution" required maxlength="100" placeholder="Official broadcaster">
 <label for="newCollection">Collection</label><select id="newCollection"><option>Wildlife</option><option>Space</option><option>Nature</option><option>Other</option></select>
 <label for="newKind">Player type</label><select id="newKind"><option value="video">Direct browser-compatible video</option><option value="iframe">Generic iframe</option></select>
-<label for="newEmbed">HTTPS player or media URL</label><input id="newEmbed" type="url" required>
+<label for="newEmbed">HTTPS player or media URL</label><input id="newEmbed" type="url" required placeholder="Direct .mp4, .webm, or .m3u8 URL">
 <fieldset><legend>Daily live hours (optional)</legend>
 <label for="timezone">Camera time zone</label><input id="timezone" placeholder="America/Los_Angeles">
 <label for="liveStart">Live from</label><input id="liveStart" type="time">
@@ -156,6 +156,9 @@ if (controlledWallpaper) $('sourceHint').textContent = 'Use the desktop gear to 
 const failed = new Set();
 let current=null,history=[],index=-1,timer=null,hold=false;
 let playbackStatus = '';
+let mediaGeneration = 0;
+let hlsPlayer;
+let hlsLibrary;
 let companion;
 function save() {
   if (controls) companion.save(state);
@@ -203,6 +206,25 @@ function schedule() {
   }
 }
 
+function loadHls() {
+  if (!hlsLibrary) {
+    hlsLibrary = new Promise((resolve, reject) => {
+      const script = document.createElement('script');
+      script.src = 'https://cdn.jsdelivr.net/npm/hls.js@1.6.15/dist/hls.min.js';
+      script.integrity = 'sha384-iZBI1/lW9u8FcBjxuQ8nPTsU7TXhZNtzkV8H3gQHSTgz+VYQoKWqGlBHqhO84alJ';
+      script.crossOrigin = 'anonymous';
+      script.onload = () => resolve(window.Hls);
+      script.onerror = () => {
+        script.remove();
+        hlsLibrary = undefined;
+        reject(new Error('Could not load the HLS player.'));
+      };
+      document.head.append(script);
+    });
+  }
+  return hlsLibrary;
+}
+
 function playStream(stream, record) {
   if (controls) {
     if (stream) companion.command('play', stream.id);
@@ -210,7 +232,10 @@ function playStream(stream, record) {
   }
   const video = $('video');
   const player = $('player');
+  const generation = ++mediaGeneration;
   video.onended = video.onerror = video.onplaying = null;
+  hlsPlayer?.destroy();
+  hlsPlayer = undefined;
   video.pause();
   video.removeAttribute('src');
   video.load();
@@ -234,18 +259,37 @@ function playStream(stream, record) {
     playbackStatus = 'Press Play if autoplay is blocked. Live status unverified.';
     video.defaultMuted = state.muted;
     video.muted = state.muted;
-    video.onended = video.onerror = () => {
+    function failedPlayback() {
+      if (generation !== mediaGeneration) return;
       failed.add(stream.id);
       drawList();
       if (hold) playStream(null, false);
       else pickNext();
-    };
+    }
+    video.onended = video.onerror = failedPlayback;
     video.onplaying = () => {
       playbackStatus = 'Playing · Live status unverified';
       display();
     };
-    video.src = stream.embed;
-    video.play().catch(() => {});
+    const isHls = new URL(stream.embed).pathname.toLowerCase().endsWith('.m3u8');
+    if (isHls && !video.canPlayType('application/vnd.apple.mpegurl')) {
+      loadHls().then(Hls => {
+        if (generation !== mediaGeneration) return;
+        if (!Hls?.isSupported()) return failedPlayback();
+        hlsPlayer = new Hls();
+        hlsPlayer.on(Hls.Events.ERROR, (_, error) => {
+          if (error.fatal) failedPlayback();
+        });
+        hlsPlayer.on(Hls.Events.MANIFEST_PARSED, () => {
+          if (generation === mediaGeneration) video.play().catch(() => {});
+        });
+        hlsPlayer.loadSource(stream.embed);
+        hlsPlayer.attachMedia(video);
+      }).catch(failedPlayback);
+    } else {
+      video.src = stream.embed;
+      video.play().catch(() => {});
+    }
   } else {
     playbackStatus = 'Live status and playback errors are unobservable in this player.';
     player.src = stream.embed;
