@@ -10,6 +10,7 @@
 #stage{position:fixed;inset:0;background:radial-gradient(ellipse at 60% 30%,#15374a,#050c12 70%);display:grid;place-items:center}
 #player,#video{width:100%;height:100%;border:0;background:#07111b}
 #video{object-fit:cover}
+#lastFrame{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;pointer-events:none}
 .empty{text-align:center;max-width:38rem;padding:2rem;color:#c1d7dc;line-height:1.6}
 .empty h1{color:#fff;font-weight:550}
 .toolbar{position:fixed;right:12px;bottom:12px}
@@ -60,7 +61,7 @@ fieldset label{margin:9px 0}
 </style>
 </head>
 <body>
-<main id="stage" aria-label="Livestream canvas"><div id="empty" class="empty"><h1>A window into the world.</h1><p id="sourceHint">Add an authorized live source in Settings.</p><p id="emptyStatus" role="status"></p></div><iframe id="player" title="Selected livestream" allow="autoplay; fullscreen; picture-in-picture; encrypted-media" referrerpolicy="strict-origin-when-cross-origin" hidden></iframe><video id="video" playsinline controls muted hidden></video></main>
+<main id="stage" aria-label="Livestream canvas"><div id="empty" class="empty"><h1>A window into the world.</h1><p id="sourceHint">Add an authorized live source in Settings.</p><p id="emptyStatus" role="status"></p></div><iframe id="player" title="Selected livestream" allow="autoplay; fullscreen; picture-in-picture; encrypted-media" referrerpolicy="strict-origin-when-cross-origin" hidden></iframe><video id="video" playsinline controls muted hidden></video><canvas id="lastFrame" width="0" height="0" role="img" aria-label="Last rendered camera frame" hidden></canvas></main>
 <section id="meta" class="meta" hidden aria-live="polite"><h2 id="title"></h2><p id="institution"></p><a id="original" target="_blank" rel="noopener noreferrer" hidden>Watch original</a><a id="donation" target="_blank" rel="noopener noreferrer" hidden>Support source</a></section>
 <nav class="toolbar" aria-label="Playback controls">
 <div id="menuActions" class="menu-actions" hidden>
@@ -176,10 +177,12 @@ function drawList(){const pool=eligible();const root=$('sources');root.replaceCh
 function display() {
   if (controlledWallpaper) publishStatus();
   const showing = current && desktopViewable;
+  const hasStill = $('lastFrame').width > 0;
   $('player').hidden = !showing || current.kind === 'video';
   $('video').hidden = !showing || current.kind !== 'video';
-  $('empty').hidden = Boolean(showing);
-  $('meta').hidden = !showing || !state.showInfo;
+  $('lastFrame').hidden = !hasStill;
+  $('empty').hidden = Boolean(showing) || hasStill;
+  $('meta').hidden = !showing || hasStill || !state.showInfo;
   $('noCamera').hidden = Boolean(current);
   $('cameraDetailsContent').hidden = !current;
   if (!current) return;
@@ -200,6 +203,22 @@ function display() {
     }
   }
   $('status').textContent = playbackStatus;
+}
+
+function rememberFrame() {
+  const video = $('video');
+  if (video.readyState < HTMLMediaElement.HAVE_CURRENT_DATA || !video.videoWidth || !video.videoHeight) return;
+  const canvas = $('lastFrame');
+  // Draw directly to the visible canvas. It stays in memory and no pixels are read back.
+  try {
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    const context = canvas.getContext('2d');
+    if (!context) throw new Error('Canvas context unavailable');
+    context.drawImage(video, 0, 0);
+  } catch {
+    canvas.width = 0;
+  }
 }
 function schedule() {
   clearTimeout(timer);
@@ -244,6 +263,7 @@ function playStream(stream, record) {
   player.removeAttribute('src');
   current = stream;
   if (!stream) {
+    $('lastFrame').width = 0;
     playbackStatus = '';
     $('emptyStatus').textContent = failed.size
       ? 'Playback failed or ended. Use Next to retry.'
@@ -258,8 +278,9 @@ function playStream(stream, record) {
     index = history.length - 1;
   }
   if (!desktopViewable) {
-    playbackStatus = 'Paused · Waiting for more than half the desktop to be visible';
-    $('emptyStatus').textContent = playbackStatus;
+    const waiting = 'Waiting for more than half the desktop to be visible';
+    playbackStatus = $('lastFrame').width > 0 ? 'Paused · Showing last frame' : 'Paused · ' + waiting;
+    $('emptyStatus').textContent = waiting;
     display();
     schedule();
     return;
@@ -278,6 +299,16 @@ function playStream(stream, record) {
     video.onended = video.onerror = failedPlayback;
     video.onplaying = () => {
       playbackStatus = 'Playing · Live status unverified';
+      const still = $('lastFrame');
+      if (still.width > 0 && video.requestVideoFrameCallback) {
+        video.requestVideoFrameCallback(() => {
+          if (generation !== mediaGeneration) return;
+          still.width = 0;
+          display();
+        });
+      } else {
+        still.width = 0;
+      }
       display();
     };
     const isHls = new URL(stream.embed).pathname.toLowerCase().endsWith('.m3u8');
@@ -477,6 +508,7 @@ if (controls || controlledWallpaper) {
     visibility(fraction) {
       const viewable = typeof fraction === 'number' && fraction > 0.5;
       if (desktopViewable === viewable) return;
+      if (!viewable) rememberFrame();
       desktopViewable = viewable;
       if (current) playStream(current, false);
       else refreshEligibility();
