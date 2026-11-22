@@ -47,6 +47,11 @@ fieldset label{margin:9px 0}
 .wallpaper #menu{width:36px;height:36px;padding:0;background:#07131d45;border-color:#ffffff38;color:#fff;text-shadow:0 1px 3px #000}
 .wallpaper #menu:hover,.wallpaper #menu:focus-visible,.wallpaper #menu[aria-expanded="true"]{background:#173342e8;border-color:#81cbeb}
 .wallpaper .menu-label{display:none}
+.controls #stage,.controls #meta,.controlled-wallpaper .toolbar,.controlled-wallpaper .submenu{display:none!important}
+.controls #menu{width:36px;height:36px;padding:0;background:#193341;border-color:#8ba6ae;color:#fff}
+.controls #menu:hover,.controls #menu:focus-visible,.controls #menu[aria-expanded="true"]{background:#285467;border-color:#81cbeb}
+.controls .menu-label{display:none}
+.controls .menu-actions,.controls .submenu{background:#0b1c26}
 @media(max-width:480px){.meta{top:auto;bottom:60px;left:8px;max-width:calc(100% - 16px)}}
 @media(max-width:540px){.menu-actions{width:max-content;grid-auto-flow:column}.menu-actions button{white-space:nowrap}.submenu{right:12px;bottom:146px;width:min(400px,calc(100vw - 24px));max-height:calc(100dvh - 158px)}.settings-categories{width:min(350px,calc(100vw - 24px));grid-template-columns:repeat(3,minmax(0,1fr))}.settings-categories button{padding:8px 4px;text-align:center}.settings-detail{bottom:206px;max-height:calc(100dvh - 218px)}}
 @media(max-width:540px){.playback{grid-template-columns:repeat(2,minmax(0,1fr))}.camera-detail{bottom:282px;max-height:calc(100dvh - 294px)}}
@@ -55,7 +60,7 @@ fieldset label{margin:9px 0}
 </style>
 </head>
 <body>
-<main id="stage" aria-label="Livestream canvas"><div id="empty" class="empty"><h1>A window into the world.</h1><p>Add an authorized live source in Settings.</p><p id="emptyStatus" role="status"></p></div><iframe id="player" title="Selected livestream" allow="autoplay; fullscreen; picture-in-picture; encrypted-media" referrerpolicy="strict-origin-when-cross-origin" hidden></iframe><video id="video" playsinline controls muted hidden></video></main>
+<main id="stage" aria-label="Livestream canvas"><div id="empty" class="empty"><h1>A window into the world.</h1><p id="sourceHint">Add an authorized live source in Settings.</p><p id="emptyStatus" role="status"></p></div><iframe id="player" title="Selected livestream" allow="autoplay; fullscreen; picture-in-picture; encrypted-media" referrerpolicy="strict-origin-when-cross-origin" hidden></iframe><video id="video" playsinline controls muted hidden></video></main>
 <section id="meta" class="meta" hidden aria-live="polite"><h2 id="title"></h2><p id="institution"></p><a id="original" target="_blank" rel="noopener noreferrer" hidden>Watch original</a><a id="donation" target="_blank" rel="noopener noreferrer" hidden>Support source</a></section>
 <nav class="toolbar" aria-label="Playback controls">
 <div id="menuActions" class="menu-actions" hidden>
@@ -124,23 +129,48 @@ fieldset label{margin:9px 0}
 </aside>
 <script type="module">
 import { httpsUrl as https, isYouTube, liveWindow, canPlay } from './stream-rules.mjs';
+import { connectCompanion, reportControlBounds } from './companion.mjs';
 (()=>{
 const KEY='livestream-roulette-v1';
 const defaults={interval:30,muted:true,showInfo:false,enabled:['Wildlife','Space','Nature','Other'],streams:[]};
 const $=id=>document.getElementById(id);
-let state;try{const data=JSON.parse(localStorage.getItem(KEY)||'{}');state={...defaults,...data};if(!Array.isArray(state.streams))state.streams=[];if(!Array.isArray(state.enabled))state.enabled=[...defaults.enabled]}catch{state={...defaults}}
-const wallpaper = new URLSearchParams(location.search).get('wallpaper') === '1';
+function readSettings(data) {
+  const settings = { ...defaults, ...data };
+  if (!Array.isArray(settings.streams)) settings.streams = [];
+  if (!Array.isArray(settings.enabled)) settings.enabled = [...defaults.enabled];
+  if (![15, 30, 60, 120].includes(settings.interval)) settings.interval = defaults.interval;
+  return settings;
+}
+const query = new URLSearchParams(location.search);
+const wallpaper = query.get('wallpaper') === '1';
+const controls = query.get('controls') === '1';
+const controlledWallpaper = wallpaper && query.get('companion') === '1';
+let state = readSettings();
+if (!controls && !controlledWallpaper) {
+  try { state = readSettings(JSON.parse(localStorage.getItem(KEY))); } catch {}
+}
 document.body.classList.toggle('wallpaper', wallpaper);
+document.body.classList.toggle('controls', controls);
+document.body.classList.toggle('controlled-wallpaper', controlledWallpaper);
+if (controlledWallpaper) $('sourceHint').textContent = 'Use the desktop gear to add an authorized live source.';
 const failed = new Set();
 let current=null,history=[],index=-1,timer=null,hold=false;
 let playbackStatus = '';
-const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(state))}catch(e){$('formMessage').textContent='Storage unavailable: changes may be temporary.'}};
+let companion;
+function save() {
+  if (controls) companion.save(state);
+  else {
+    try { localStorage.setItem(KEY, JSON.stringify(state)); }
+    catch { $('formMessage').textContent = 'Storage unavailable: changes may be temporary.'; }
+  }
+}
 function eligible() {
   const now = new Date();
-  return state.streams.filter(s => s && !failed.has(s.id) && canPlay(s, state, wallpaper, now));
+  return state.streams.filter(s => s && !failed.has(s.id) && canPlay(s, state, wallpaper || controls, now));
 }
 function drawList(){const pool=eligible();const root=$('sources');root.replaceChildren();const heading=document.createElement('h3');heading.textContent='Saved cameras ('+state.streams.length+')';root.append(heading);for(const s of state.streams.filter(Boolean)){const entry=document.createElement('div');entry.className='item';const name=document.createElement('strong');name.textContent=s.title;const desc=document.createElement('small');desc.textContent=s.institution+' · '+s.collection;const row=document.createElement('div');row.className='row';const play=document.createElement('button');play.textContent='Play';play.disabled=!pool.includes(s);play.onclick=()=>{if(eligible().includes(s))playStream(s,true)};const remove=document.createElement('button');remove.textContent='Remove';remove.onclick=()=>{state.streams=state.streams.filter(x=>x.id!==s.id);save();drawList();refreshEligibility();schedule();};row.append(play,remove);entry.append(name,desc,row);root.append(entry)}}
 function display() {
+  if (controlledWallpaper) publishStatus();
   $('player').hidden = !current || current.kind === 'video';
   $('video').hidden = !current || current.kind !== 'video';
   $('empty').hidden = Boolean(current);
@@ -168,12 +198,16 @@ function display() {
 }
 function schedule() {
   clearTimeout(timer);
-  if (!document.hidden && !hold && current && eligible().length > 1) {
+  if (!controls && !document.hidden && !hold && current && eligible().length > 1) {
     timer = setTimeout(pickNext, state.interval * 60000);
   }
 }
 
 function playStream(stream, record) {
+  if (controls) {
+    if (stream) companion.command('play', stream.id);
+    return;
+  }
   const video = $('video');
   const player = $('player');
   video.onended = video.onerror = video.onplaying = null;
@@ -183,6 +217,7 @@ function playStream(stream, record) {
   player.removeAttribute('src');
   current = stream;
   if (!stream) {
+    playbackStatus = '';
     $('emptyStatus').textContent = failed.size
       ? 'Playback failed or ended. Use Next to retry.'
       : 'No cameras are eligible for the current settings and live hours.';
@@ -234,8 +269,23 @@ function retryNext() {
   drawList();
   pickNext();
 }
-$('next').onclick=retryNext;$('previous').onclick=previous;
-$('hold').onclick=()=>{hold=!hold;$('hold').setAttribute('aria-pressed',String(hold));$('hold').textContent=hold?'Resume rotation':'Stay here';refreshEligibility();schedule()};
+function drawHold() {
+  $('hold').setAttribute('aria-pressed', String(hold));
+  $('hold').textContent = hold ? 'Resume rotation' : 'Stay here';
+}
+function toggleHold() {
+  hold = !hold;
+  drawHold();
+  refreshEligibility();
+  schedule();
+  if (controlledWallpaper) publishStatus();
+}
+const actions = { next: retryNext, previous, hold: toggleHold };
+function runAction(action) {
+  if (controls) companion.command(action);
+  else actions[action]();
+}
+for (const action of Object.keys(actions)) $(action).onclick = () => runAction(action);
 const branches = {
   playback: 'playbackPanel',
   settings: 'panel'
@@ -290,6 +340,10 @@ for(const col of ['Wildlife','Space','Nature','Other']){const el=$(col.toLowerCa
 $('addForm').onsubmit=e=>{e.preventDefault();const embed=https($('newEmbed').value),original=https($('newOriginal').value),donation=$('newDonation').value?https($('newDonation').value):null;
  if(!embed||!original||($('newDonation').value&&!donation)){$('formMessage').textContent='All supplied URLs must use HTTPS.';return}
  if(isYouTube(embed)){$('formMessage').textContent='Use the official YouTube watch page separately.';return}
+ if((controls || wallpaper) && $('newKind').value !== 'video') {
+   $('formMessage').textContent = 'Wallpaper sources need a direct video URL.';
+   return;
+ }
  let schedule;
  try {
    schedule = liveWindow($('timezone').value.trim(), $('liveStart').value, $('liveEnd').value);
@@ -308,8 +362,8 @@ window.addEventListener('keydown', e => {
     return;
   }
   if (e.target.closest('input,select,textarea')) return;
-  if (e.key === 'ArrowRight') retryNext();
-  if (e.key === 'ArrowLeft') previous();
+  if (e.key === 'ArrowRight') runAction('next');
+  if (e.key === 'ArrowLeft') runAction('previous');
 });
 let lastPool = '';
 function refreshEligibility() {
@@ -320,6 +374,7 @@ function refreshEligibility() {
     drawList();
     schedule();
   }
+  if (controls) return;
   if (current && !pool.includes(current)) {
     if (hold) playStream(null, false);
     else pickNext();
@@ -336,7 +391,66 @@ document.addEventListener('visibilitychange', () => {
 });
 setInterval(refreshEligibility, 15000);
 drawList();
-pickNext();
+function applySharedSettings(data) {
+  const settings = readSettings(data);
+  if (JSON.stringify(state) === JSON.stringify(settings)) return;
+  const replacement = settings.streams.find(stream => current && stream?.id === current.id
+    && stream.embed === current.embed && stream.kind === current.kind);
+  if (replacement) current = replacement;
+  state = settings;
+  $('interval').value = String(state.interval);
+  $('startMuted').checked = $('video').defaultMuted = $('video').muted = state.muted;
+  $('showInfo').checked = state.showInfo;
+  for (const col of defaults.enabled) $(col.toLowerCase()).checked = state.enabled.includes(col);
+  drawList();
+  refreshEligibility();
+  display();
+  schedule();
+}
+
+let lastStatus;
+function publishStatus() {
+  const status = { id: current?.id ?? null, playback: playbackStatus, hold };
+  const signature = JSON.stringify(status);
+  if (!companion || signature === lastStatus) return;
+  lastStatus = signature;
+  companion.status(status).catch(() => {
+    if (lastStatus === signature) lastStatus = undefined;
+  });
+}
+if (controls || controlledWallpaper) {
+  companion = connectCompanion(controls ? 'controls' : 'wallpaper', {
+    settings: applySharedSettings,
+    command({ action, id }) {
+      if (action === 'play') {
+        const stream = eligible().find(candidate => candidate.id === id);
+        if (stream) playStream(stream, true);
+      } else actions[action]?.();
+    },
+    status(status) {
+      const stream = state.streams.find(candidate => candidate?.id === status?.id) ?? null;
+      const playback = status?.playback ?? '';
+      const held = Boolean(status?.hold);
+      if (current === stream && playbackStatus === playback && hold === held) return;
+      current = stream;
+      playbackStatus = playback;
+      hold = held;
+      drawHold();
+      display();
+    },
+    connected(newSession) {
+      if (newSession) lastStatus = undefined;
+      publishStatus();
+    },
+    error(message) {
+      if (message) $('formMessage').textContent = message;
+    }
+  });
+  if (controls) {
+    $('newKind').querySelector('[value="iframe"]').disabled = true;
+    reportControlBounds();
+  }
+} else pickNext();
 })();
 </script>
 </body></html>
