@@ -13,16 +13,19 @@
 .empty{text-align:center;max-width:38rem;padding:2rem;color:#c1d7dc;line-height:1.6}
 .empty h1{color:#fff;font-weight:550}
 .toolbar{position:fixed;right:12px;bottom:12px}
-.menu-actions,aside{background:#081923f7;border:1px solid #38515b;border-radius:12px;box-shadow:0 8px 30px #0008}
+.menu-actions,.submenu{background:#081923f7;border:1px solid #38515b;border-radius:12px;box-shadow:0 8px 30px #0008}
 .menu-actions{position:absolute;right:0;bottom:calc(100% + 8px);width:148px;display:grid;gap:4px;padding:6px}
 .menu-actions button{text-align:left}
+.menu-actions button[aria-expanded="true"]{background:#315b57;border-color:#81cbeb}
 button{cursor:pointer;background:#173342;color:white;border:1px solid #456573;padding:9px 13px;border-radius:9px}
 button:hover{background:#285467}button:focus-visible,input:focus-visible,select:focus-visible,a:focus-visible{outline:3px solid #81cbeb;outline-offset:2px}
 button[aria-pressed="true"]{background:#315b57}
 .meta{position:fixed;top:12px;left:12px;max-width:calc(100% - 24px);display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 10px;background:#07131de8;border:1px solid #38515b;border-radius:8px;padding:5px 9px;font-size:.8rem;line-height:1.4;overflow-wrap:anywhere}
 .meta h2{font-size:inherit;margin:0}.meta p{margin:0;color:#c1d7dc}
 a{color:#a4e0fa}
-aside{position:fixed;right:168px;bottom:64px;width:min(400px,calc(100vw - 180px));max-height:calc(100dvh - 76px);overflow:auto;padding:18px}
+.submenu{position:fixed;right:168px;bottom:60px;width:min(400px,calc(100vw - 180px));max-height:calc(100dvh - 72px);overflow:auto;padding:14px}
+.playback{width:min(184px,calc(100vw - 180px));display:grid;gap:4px}
+.playback button{text-align:left}
 aside h2{margin:0 0 5px}aside p,small{color:#bac9ce;line-height:1.5}
 label{display:block;margin:14px 0 5px}input,select{width:100%;padding:10px;background:#0e2a39;color:#fff;border:1px solid #4b6571;border-radius:8px}
 input[type=checkbox]{width:auto;margin-right:8px}
@@ -33,8 +36,8 @@ fieldset label{margin:9px 0}
 .item strong{display:block}.item small{display:block}.item .row{margin-top:8px}
 .note{font-size:.84rem}.error{color:#ffd6a8}
 [hidden]{display:none!important}
-body.wallpaper .toolbar,body.wallpaper aside{display:none}
-@media(max-width:600px){aside{right:12px;width:min(400px,calc(100vw - 24px))}.toolbar:has(+ aside:not([hidden])) .menu-actions{display:none}.meta{top:auto;bottom:60px;left:8px;max-width:calc(100% - 16px)}body.wallpaper .meta{bottom:8px}}
+body.wallpaper .toolbar,body.wallpaper .submenu{display:none}
+@media(max-width:480px){.menu-actions{width:auto;grid-auto-flow:column}.submenu{right:12px;bottom:114px;width:min(400px,calc(100vw - 24px));max-height:calc(100dvh - 126px)}.meta{top:auto;bottom:60px;left:8px;max-width:calc(100% - 16px)}body.wallpaper .meta{bottom:8px}}
 </style>
 </head>
 <body>
@@ -42,17 +45,21 @@ body.wallpaper .toolbar,body.wallpaper aside{display:none}
 <section id="meta" class="meta" hidden aria-live="polite"><h2 id="title"></h2><p id="institution"></p><a id="original" target="_blank" rel="noopener noreferrer" hidden>Watch original</a><a id="donation" target="_blank" rel="noopener noreferrer" hidden>Support source</a></section>
 <nav class="toolbar" aria-label="Playback controls">
 <div id="menuActions" class="menu-actions" hidden>
+<button id="playback" aria-expanded="false" aria-controls="playbackPanel">‹ Playback</button>
+<button id="settings" aria-expanded="false" aria-controls="panel">‹ Settings</button>
+</div>
+<button id="menu" aria-expanded="false" aria-controls="menuActions">⚙ Menu</button>
+</nav>
+<section id="playbackPanel" class="submenu playback" hidden aria-label="Playback">
+<button id="backPlayback">← Back to menu</button>
 <button id="previous" title="Previous camera">← Back</button>
 <button id="next" title="Next camera">Next →</button>
 <button id="hold" aria-pressed="false" title="Stop automatic rotation">Stay here</button>
 <button id="info" aria-pressed="false">Camera info</button>
-<button id="settings" aria-expanded="false" aria-controls="panel">Settings ›</button>
-</div>
-<button id="menu" aria-expanded="false" aria-controls="menuActions">⚙ Menu</button>
-</nav>
-<aside id="panel" hidden aria-label="Settings">
+</section>
+<aside id="panel" class="submenu" hidden aria-label="Settings">
+<div class="row"><h2>Settings</h2><button id="close">← Back to menu</button></div>
 <p id="status" class="note" role="status" hidden></p>
-<div class="row"><h2>Livestream Roulette</h2><button id="close" aria-label="Close settings">✕</button></div>
 <p>Browser prototype · Local-first · No account or telemetry</p>
 <label for="interval">Rotate every</label><select id="interval"><option value="15">15 minutes</option><option value="30">30 minutes</option><option value="60">60 minutes</option><option value="120">120 minutes</option></select>
 <label><input id="startMuted" type="checkbox" checked> Require muted playback</label>
@@ -172,21 +179,33 @@ function retryNext() {
 $('next').onclick=retryNext;$('previous').onclick=previous;
 $('hold').onclick=()=>{hold=!hold;$('hold').setAttribute('aria-pressed',String(hold));$('hold').textContent=hold?'Resume rotation':'Stay here';refreshEligibility();schedule()};
 $('info').onclick=()=>{state.showInfo=!state.showInfo;$('showInfo').checked=state.showInfo;save();display()};
-function panel(open, restoreFocus = true) {
-  $('panel').hidden = !open;
-  $('settings').setAttribute('aria-expanded', String(open));
-  if (open) $('close').focus();
-  else if (restoreFocus) $('settings').focus();
+const branches = {
+  playback: { panel: 'playbackPanel', back: 'backPlayback' },
+  settings: { panel: 'panel', back: 'close' }
+};
+let activeBranch = null;
+function openBranch(branch) {
+  const previous = activeBranch;
+  activeBranch = branch;
+  for (const [id, controls] of Object.entries(branches)) {
+    $(controls.panel).hidden = id !== branch;
+    $(id).setAttribute('aria-expanded', String(id === branch));
+  }
+  if (branch) $(branches[branch].back).focus();
+  else if (previous) $(previous).focus();
 }
 function menu(open) {
-  if (!open) panel(false, false);
+  if (!open) openBranch(null);
   $('menuActions').hidden = !open;
   $('menu').setAttribute('aria-expanded', String(open));
-  if (open) $('previous').focus();
+  if (open) $('playback').focus();
   else $('menu').focus();
 }
 $('menu').onclick = () => menu($('menuActions').hidden);
-$('settings').onclick=()=>panel($('panel').hidden);$('close').onclick=()=>panel(false);
+for (const [id, controls] of Object.entries(branches)) {
+  $(id).onclick = () => openBranch(activeBranch === id ? null : id);
+  $(controls.back).onclick = () => openBranch(null);
+}
 $('interval').value=String(state.interval);$('interval').onchange=()=>{state.interval=Number($('interval').value);save();schedule()};
 $('startMuted').checked=state.muted;$('startMuted').onchange=()=>{state.muted=$('startMuted').checked;save();$('video').defaultMuted=state.muted;$('video').muted=state.muted;refreshEligibility();schedule()};
 $('showInfo').checked=state.showInfo;$('showInfo').onchange=()=>{state.showInfo=$('showInfo').checked;save();display()};
@@ -206,7 +225,7 @@ $('addForm').onsubmit=e=>{e.preventDefault();const embed=https($('newEmbed').val
  state.streams.push(s);save();drawList();$('addForm').reset();$('formMessage').textContent='Camera saved locally. Playback and liveness are not verified.';refreshEligibility();schedule()};
 window.addEventListener('keydown', e => {
   if (e.key === 'Escape') {
-    if (!$('panel').hidden) panel(false);
+    if (activeBranch) openBranch(null);
     else if (!$('menuActions').hidden) menu(false);
     return;
   }

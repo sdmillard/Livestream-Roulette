@@ -40,8 +40,15 @@ try {
   check(el('menuActions').hidden, 'Playback actions start collapsed');
   el('menu').click();
   check(!el('menuActions').hidden, 'Menu reveals playback actions');
+  el('playback').click();
+  check(!el('playbackPanel').hidden && !el('menuActions').hidden, 'Playback opens beside its parent');
   el('settings').click();
+  check(el('playbackPanel').hidden, 'Opening Settings replaces the Playback submenu');
   check(!el('panel').hidden, 'Settings opens');
+  el('close').click();
+  check(el('panel').hidden && !el('menuActions').hidden, 'Back returns to the parent menu');
+  check(doc.activeElement === el('settings'), 'Back restores focus to the submenu entry');
+  el('settings').click();
   el('close').dispatchEvent(new frame.contentWindow.KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
   check(el('panel').hidden && !el('menuActions').hidden, 'Escape returns to the parent menu');
   el('settings').click();
