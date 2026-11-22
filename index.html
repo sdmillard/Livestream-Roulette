@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Livestream Roulette — browser prototype</title>
+<style>
+:root{font-family:system-ui,-apple-system,Segoe UI,sans-serif;color:#f2f6f6;background:#050c12}
+*{box-sizing:border-box}body{margin:0;min-height:100vh}button,input,select{font:inherit}
+#stage{position:fixed;inset:0;background:radial-gradient(ellipse at 60% 30%,#15374a,#050c12 70%);display:grid;place-items:center}
+#player{width:100%;height:100%;border:0;background:#07111b}
+.empty{text-align:center;max-width:38rem;padding:2rem;color:#c1d7dc;line-height:1.6}
+.empty h1{color:#fff;font-weight:550}
+.toolbar{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);display:flex;gap:8px;background:#07131de8;border:1px solid #38515b;border-radius:15px;padding:9px;align-items:center;box-shadow:0 8px 30px #0008}
+button{cursor:pointer;background:#173342;color:white;border:1px solid #456573;padding:9px 13px;border-radius:9px}
+button:hover{background:#285467}button:focus-visible,input:focus-visible,select:focus-visible,a:focus-visible{outline:3px solid #81cbeb;outline-offset:2px}
+button[aria-pressed="true"]{background:#315b57}
+.meta{position:fixed;top:18px;left:18px;max-width:min(80vw,480px);background:#07131de8;border:1px solid #38515b;border-radius:12px;padding:13px 17px}
+.meta h2{font-size:1rem;margin:0 0 5px}.meta p{font-size:.85rem;margin:0 0 7px;color:#c1d7dc}
+a{color:#a4e0fa}.meta a{margin-right:12px}
+aside{position:fixed;right:0;top:0;bottom:0;width:min(440px,100vw);overflow:auto;background:#081923f7;border-left:1px solid #47616b;padding:22px;box-shadow:-10px 0 40px #0008}
+aside h2{margin:0 0 5px}aside p,small{color:#bac9ce;line-height:1.5}
+label{display:block;margin:14px 0 5px}input,select{width:100%;padding:10px;background:#0e2a39;color:#fff;border:1px solid #4b6571;border-radius:8px}
+input[type=checkbox]{width:auto;margin-right:8px}
+.row{display:flex;gap:8px;align-items:center}.row>*{flex:1}.row button{flex:0 0 auto}
+fieldset{border:1px solid #42606b;border-radius:10px;margin-top:15px}
+fieldset label{margin:9px 0}
+.item{border-top:1px solid #304651;padding:12px 0}
+.item strong{display:block}.item small{display:block}.item .row{margin-top:8px}
+.note{font-size:.84rem}.error{color:#ffd6a8}
+[hidden]{display:none!important}
+body.wallpaper .toolbar,body.wallpaper aside{display:none}
+@media(max-width:600px){.toolbar{bottom:8px}.toolbar button{padding:8px}.meta{top:8px;left:8px}}
+</style>
+</head>
+<body>
+<main id="stage" aria-label="Livestream canvas"><div id="empty" class="empty"><h1>A window into the world.</h1><p>Add a permitted embed URL in Settings to start rotating genuinely live cameras. Official camera links below are for discovery, not pre-approved embeds.</p><p>Nothing plays until you choose a stream.</p></div><iframe id="player" title="Selected livestream" allow="autoplay; fullscreen; picture-in-picture; encrypted-media" referrerpolicy="strict-origin-when-cross-origin" hidden></iframe></main>
+<section id="meta" class="meta" hidden aria-live="polite"><h2 id="title"></h2><p id="institution"></p><a id="original" target="_blank" rel="noopener noreferrer" hidden>Watch original</a><a id="donation" target="_blank" rel="noopener noreferrer" hidden>Support source</a><p id="status" class="note"></p></section>
+<nav class="toolbar" aria-label="Playback controls"><button id="previous" title="Previous camera">← Back</button><button id="next" title="Next camera">Next →</button><button id="hold" aria-pressed="false" title="Stop automatic rotation">Stay here</button><button id="info" aria-pressed="false">Info</button><button id="settings" aria-expanded="false" aria-controls="panel">⚙ Settings</button></nav>
+<aside id="panel" hidden aria-label="Settings">
+<div class="row"><h2>Livestream Roulette</h2><button id="close" aria-label="Close settings">✕</button></div>
+<p>Browser prototype · Local-first · No account or telemetry</p>
+<label for="interval">Rotate every</label><select id="interval"><option value="15">15 minutes</option><option value="30">30 minutes</option><option value="60">60 minutes</option><option value="120">120 minutes</option></select>
+<label><input id="startMuted" type="checkbox" checked> Request muted playback (provider-dependent)</label>
+<label><input id="showInfo" type="checkbox"> Show camera info overlay</label>
+<fieldset><legend>Collections</legend><label><input type="checkbox" id="wildlife" checked> Wildlife</label><label><input type="checkbox" id="space" checked> Space</label><label><input type="checkbox" id="nature" checked> Nature</label><label><input type="checkbox" id="other" checked> Other</label></fieldset>
+<h3>Your permitted embeds</h3>
+<p class="note">Only add sources you are allowed to embed. Enter a dedicated HTTPS player URL, not an ordinary webpage. Generic iframes cannot reliably report stream endings or outages.</p>
+<form id="addForm">
+<label for="newTitle">Camera title</label><input id="newTitle" required maxlength="100" placeholder="e.g. Live reef camera">
+<label for="newInstitution">Organization</label><input id="newInstitution" required maxlength="100" placeholder="Official broadcaster">
+<label for="newCollection">Collection</label><select id="newCollection"><option>Wildlife</option><option>Space</option><option>Nature</option><option>Other</option></select>
+<label for="newEmbed">HTTPS embed URL</label><input id="newEmbed" type="url" required placeholder="https://www.youtube-nocookie.com/embed/VIDEO_ID">
+<label for="newOriginal">Official viewing page</label><input id="newOriginal" type="url" required placeholder="https://official.example/camera">
+<label for="newDonation">Official donation page (optional)</label><input id="newDonation" type="url" placeholder="https://official.example/donate">
+<label><input id="permission" type="checkbox" required> I have checked this source's embed and background playback terms.</label>
+<button type="submit">Add camera</button><p id="formMessage" class="note" role="status"></p>
+</form>
+<div id="sources" aria-live="polite"></div>
+<h3>Official camera discovery</h3>
+<p class="note">These are genuine institutions' camera pages. Their current playback state and embedding rights are **not** automatically verified.</p>
+<p><a href="https://www.montereybayaquarium.org/cams-videos/live-cams" target="_blank" rel="noopener noreferrer">Monterey Bay Aquarium — live camera directory</a></p>
+<p><a href="https://www.montereybayaquarium.org/cams-videos/live-cams/jelly-cam" target="_blank" rel="noopener noreferrer">Monterey Bay Aquarium — Jelly Cam</a></p>
+<p class="note">Some official streams substitute prerecorded footage outside live hours. This player does not yet detect those substitutions.</p>
+</aside>
+<script>
+(()=>{
+'use strict';
+const KEY='livestream-roulette-v1';
+const defaults={interval:30,muted:true,showInfo:false,enabled:['Wildlife','Space','Nature','Other'],streams:[]};
+const $=id=>document.getElementById(id);
+let state;try{const data=JSON.parse(localStorage.getItem(KEY)||'{}');state={...defaults,...data};if(!Array.isArray(state.streams))state.streams=[];if(!Array.isArray(state.enabled))state.enabled=[...defaults.enabled]}catch{state={...defaults}}
+let current=null,history=[],index=-1,timer=null,hold=false;
+const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(state))}catch(e){$('formMessage').textContent='Storage unavailable: changes may be temporary.'}};
+function https(v){try{const u=new URL(v);return u.protocol==='https:'?u.href:null}catch{return null}}
+function eligible(){return state.streams.filter(s=>s && state.enabled.includes(s.collection) && https(s.embed) && https(s.original))}
+function drawList(){const root=$('sources');root.replaceChildren();const heading=document.createElement('h3');heading.textContent='Saved cameras ('+state.streams.length+')';root.append(heading);for(const s of state.streams){const entry=document.createElement('div');entry.className='item';const name=document.createElement('strong');name.textContent=s.title;const desc=document.createElement('small');desc.textContent=s.institution+' · '+s.collection;const row=document.createElement('div');row.className='row';const play=document.createElement('button');play.textContent='Play';play.onclick=()=>playStream(s,true);const remove=document.createElement('button');remove.textContent='Remove';remove.onclick=()=>{state.streams=state.streams.filter(x=>x.id!==s.id);save();drawList();if(current?.id===s.id)pickNext();};row.append(play,remove);entry.append(name,desc,row);root.append(entry)}}
+function display(){const player=$('player'),empty=$('empty');player.hidden=!current;empty.hidden=!!current;$('meta').hidden=!current || !state.showInfo;$('info').setAttribute('aria-pressed',String(state.showInfo));if(!current)return;$('title').textContent=current.title;$('institution').textContent=current.institution+' · '+current.collection;for(const [id,url] of [['original',current.original],['donation',current.donation]]){const a=$(id),u=https(url);a.hidden=!u;if(u)a.href=u;else a.removeAttribute('href')}$('status').textContent='Live status unverified · Player errors may not be observable';}
+function schedule(){clearTimeout(timer);if(!hold && current && eligible().length>1)timer=setTimeout(pickNext,state.interval*60000)}
+function playStream(s,record){if(!s){current=null;$('player').removeAttribute('src');display();clearTimeout(timer);return}const url=https(s.embed);if(!url)return;
+ current=s;if(record){history=history.slice(0,index+1);history.push(s.id);index=history.length-1;}
+ // Mute is best-effort for third-party iframe players; cannot universally enforce.
+ const player=$('player');player.src='about:blank';player.src=url;display();schedule();}
+function pickNext(){const pool=eligible();if(!pool.length){playStream(null,false);return}const alternatives=pool.filter(s=>s.id!==current?.id),list=alternatives.length?alternatives:pool;const chosen=list[Math.floor(Math.random()*list.length)];playStream(chosen,true)}
+function previous(){if(index<=0)return;index--;const found=state.streams.find(s=>s.id===history[index]);if(found&&eligible().some(s=>s.id===found.id))playStream(found,false)}
+$('next').onclick=pickNext;$('previous').onclick=previous;
+$('hold').onclick=()=>{hold=!hold;$('hold').setAttribute('aria-pressed',String(hold));$('hold').textContent=hold?'Resume rotation':'Stay here';schedule()};
+$('info').onclick=()=>{state.showInfo=!state.showInfo;$('showInfo').checked=state.showInfo;save();display()};
+function panel(open){$('panel').hidden=!open;$('settings').setAttribute('aria-expanded',String(open))}
+$('settings').onclick=()=>panel($('panel').hidden);$('close').onclick=()=>panel(false);
+$('interval').value=String(state.interval);$('interval').onchange=()=>{state.interval=Number($('interval').value);save();schedule()};
+$('startMuted').checked=state.muted;$('startMuted').onchange=()=>{state.muted=$('startMuted').checked;save();$('formMessage').textContent='Muting depends on the player; this setting is not enforced for generic embeds.'};
+$('showInfo').checked=state.showInfo;$('showInfo').onchange=()=>{state.showInfo=$('showInfo').checked;save();display()};
+for(const col of ['Wildlife','Space','Nature','Other']){const el=$(col.toLowerCase());el.checked=state.enabled.includes(col);el.onchange=()=>{state.enabled=['Wildlife','Space','Nature','Other'].filter(c=>$(c.toLowerCase()).checked);save();if(!current||!state.enabled.includes(current.collection))pickNext();else schedule()}}
+$('addForm').onsubmit=e=>{e.preventDefault();const embed=https($('newEmbed').value),original=https($('newOriginal').value),donation=$('newDonation').value?https($('newDonation').value):null;
+ if(!embed||!original||($('newDonation').value&&!donation)){$('formMessage').textContent='All supplied URLs must use HTTPS.';return}
+ // Avoid javascript:, data:, file:, credentials and URLs impersonating arbitrary schemes.
+ const urls=[embed,original,donation].filter(Boolean);if(urls.some(v=>new URL(v).username||new URL(v).password)){$('formMessage').textContent='URLs with embedded credentials are not allowed.';return}
+ const s={id:crypto.randomUUID?.()||String(Date.now())+Math.random(),title:$('newTitle').value.trim(),institution:$('newInstitution').value.trim(),collection:$('newCollection').value,embed,original,donation};
+ if(!s.title||!s.institution)return;
+ state.streams.push(s);save();drawList();$('addForm').reset();$('formMessage').textContent='Camera saved locally. Playback and liveness are not verified.';if(!current)pickNext()};
+window.addEventListener('keydown',e=>{if(e.target.closest('input,select,textarea'))return;if(e.key==='ArrowRight')pickNext();if(e.key==='ArrowLeft')previous();if(e.key==='Escape')panel(false)});
+document.addEventListener('visibilitychange',()=>{if(document.hidden){clearTimeout(timer)}else schedule()});
+if(new URLSearchParams(location.search).get('wallpaper')==='1')document.body.classList.add('wallpaper');
+drawList();display();if(eligible().length)pickNext();
+})();
+</script>
+</body></html>
