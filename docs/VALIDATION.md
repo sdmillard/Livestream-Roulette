@@ -20,8 +20,8 @@ The [official Livestream Mode announcement](https://store.steampowered.com/news/
 | Check | Result |
 | --- | --- |
 | Chrome on Windows, November 22, 2026 | Synthetic browser smoke test passed. |
-| Wallpaper Engine URL Livestream Mode | App installation detected. Runtime playback, storage, and interaction remain unverified. |
+| Wallpaper Engine URL Livestream Mode | Wallpaper Engine 2.8.42 on Windows accepted `http://127.0.0.1:8767/?wallpaper=1` as a local URL wallpaper on November 22, 2026. Edge WebView fetched the HTML and JavaScript module, and the user saw the app's empty state on the desktop. Playback, storage, and desktop input remain unverified. |
 | Imported CEF web wallpaper | Unverified. |
 | Permitted wildlife playback and genuine live status | No approved endpoint verified end to end. |
 
-For the Windows runtime test, first open the loopback URL without a query in Livestream Mode and check whether settings open and persist across reloads. Follow Wallpaper Engine's desktop mouse interaction instructions if necessary. Add a publisher-authorized direct source in that runtime, then open the same origin with `?wallpaper=1`. Check whether the two entries share settings. Record Wallpaper Engine and WebView versions, browser autoplay, initial mute, loss of playback, rotation with a second authorized source, live-hours cutoff, wallpaper pause/resume, and whether settings survive a restart. A rendered empty state only confirms the HTML loaded.
+For the Windows runtime test, open the loopback URL with `?wallpaper=1` in Livestream Mode. Follow Wallpaper Engine's desktop mouse interaction instructions if necessary. Open **Menu → Settings → Cameras** and add a publisher-authorized direct source in that runtime. Record Wallpaper Engine and WebView versions, autoplay, initial mute, loss of playback, rotation with a second authorized source, live-hours cutoff, wallpaper pause/resume, and whether settings survive a restart.

@@ -88,9 +88,13 @@ try {
   const wallpaper = await openApp('?wallpaper=1');
   check(!wallpaper.contentDocument.getElementById('wildlife').checked, 'Settings persisted');
   check(wallpaper.contentDocument.getElementById('player').hidden, 'Wallpaper mode skips generic iframe');
-  check(wallpaper.contentWindow.getComputedStyle(
-    wallpaper.contentDocument.querySelector('nav')
-  ).display === 'none', 'Wallpaper controls are hidden');
+  const wallpaperEl = id => wallpaper.contentDocument.getElementById(id);
+  check(wallpaperEl('menu').getBoundingClientRect().width > 0, 'Wallpaper mode exposes the menu');
+  check(wallpaperEl('menuActions').hidden, 'Wallpaper menu starts collapsed');
+  wallpaperEl('menu').click();
+  wallpaperEl('settings').click();
+  wallpaperEl('camerasCategory').click();
+  check(wallpaperEl('cameraSettings').getBoundingClientRect().width > 0, 'Wallpaper mode exposes camera settings');
   wallpaper.remove();
   result.textContent = 'PASS';
 } catch (error) {

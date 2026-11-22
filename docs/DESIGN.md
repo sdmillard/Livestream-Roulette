@@ -22,7 +22,7 @@ A quiet, genuinely live **window into the world** on your desktop. Instead of re
 
 ## Core UX
 - On launch, the default view is full-bleed footage or an empty-state notice if no compatible streams are configured.
-- An accessible settings drawer is available by a visible small gear button (can be hidden for wallpaper mode via query parameter).
+- A collapsed gear menu gives access to settings in both browser and wallpaper mode.
 - **No clock, weather, labels, widgets by default.** Optional camera info overlay and optional clock follow in a later release.
 - Rotation is enabled by default at 30 minutes. Don't immediately repeat a stream when another eligible source exists.
 - “Stay here” stops the timer; Next forces a new selection. Previous returns to the prior stream.

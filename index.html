@@ -42,8 +42,7 @@ fieldset label{margin:9px 0}
 .item strong{display:block}.item small{display:block}.item .row{margin-top:8px}
 .note{font-size:.84rem}.error{color:#ffd6a8}
 [hidden]{display:none!important}
-body.wallpaper .toolbar,body.wallpaper .submenu{display:none}
-@media(max-width:480px){.meta{top:auto;bottom:60px;left:8px;max-width:calc(100% - 16px)}body.wallpaper .meta{bottom:8px}}
+@media(max-width:480px){.meta{top:auto;bottom:60px;left:8px;max-width:calc(100% - 16px)}}
 @media(max-width:540px){.menu-actions{width:max-content;grid-auto-flow:column}.menu-actions button{white-space:nowrap}.submenu{right:12px;bottom:146px;width:min(400px,calc(100vw - 24px));max-height:calc(100dvh - 158px)}.settings-categories{width:min(350px,calc(100vw - 24px));grid-template-columns:repeat(3,minmax(0,1fr))}.settings-categories button{padding:8px 4px;text-align:center}.settings-detail{bottom:206px;max-height:calc(100dvh - 218px)}}
 @media(max-width:540px){.playback{grid-template-columns:repeat(2,minmax(0,1fr))}.camera-detail{bottom:282px;max-height:calc(100dvh - 294px)}}
 </style>
@@ -328,7 +327,6 @@ document.addEventListener('visibilitychange', () => {
   }
 });
 setInterval(refreshEligibility, 15000);
-if(wallpaper)document.body.classList.add('wallpaper');
 drawList();
 pickNext();
 })();

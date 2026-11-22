@@ -13,7 +13,7 @@ Open **Playback → Camera info** for source links and playback status. The on-s
 
 Settings stay in localStorage for that browser profile and origin. Video loads from the publisher. For mute by default, use a direct video URL with a codec and transport the browser supports. Generic iframes require disabling **Require muted playback**, since the app cannot control their audio. User-provided iframe entries from the initial prototype are preserved.
 
-Check [source permissions and Wallpaper Engine compatibility](docs/VALIDATION.md) before adding a camera. For the quiet layout, append `?wallpaper=1`. It hides the toolbar and only accepts direct video sources. The settings page without the query parameter shares storage within the same browser profile and origin. A separate embedded browser may need its own setup.
+Check [source permissions and Wallpaper Engine compatibility](docs/VALIDATION.md) before adding a camera. Wallpaper mode (`?wallpaper=1`) only accepts direct video sources. Open **Menu → Settings → Cameras** on the wallpaper to configure its sources. Settings are shared within a browser profile and origin. Wallpaper Engine uses a separate browser runtime.
 
 ## Run tests
 
