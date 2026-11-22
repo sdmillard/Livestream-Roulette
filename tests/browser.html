@@ -1,0 +1,70 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Livestream Roulette browser checks</title>
+<pre id="result">Running</pre>
+<script type="module">
+const key = 'livestream-roulette-v1';
+const baseline = localStorage.getItem(key);
+const result = document.getElementById('result');
+
+function check(condition, message) {
+  if (!condition) throw new Error(message);
+}
+
+function openApp(query = '') {
+  return new Promise(resolve => {
+    const frame = document.createElement('iframe');
+    frame.onload = () => resolve(frame);
+    frame.src = '../index.html' + query;
+    document.body.append(frame);
+  });
+}
+
+const stream = (id, props = {}) => ({
+  id, title: id, institution: 'Test fixture', collection: 'Wildlife',
+  embed: 'https://example.invalid/' + id, original: 'https://example.invalid/watch', ...props
+});
+
+try {
+  localStorage.setItem(key, JSON.stringify({
+    streams: [stream('first'), stream('second'), stream('closed', {
+      schedule: { timezone: 'Invalid/Zone', start: '07:00', end: '19:00' }
+    }), stream('blocked', { embed: 'https://youtu.be/test' })]
+  }));
+  const frame = await openApp();
+  const doc = frame.contentDocument;
+  const el = id => doc.getElementById(id);
+  const buttons = () => [...doc.querySelectorAll('#sources .item button:first-child')];
+  check(el('player').hidden, 'Default settings must block generic iframe audio');
+  check(buttons().every(button => button.disabled), 'Ineligible cameras must disable manual Play');
+  el('settings').click();
+  check(!el('panel').hidden, 'Settings opens');
+  el('startMuted').click();
+  check(!el('player').hidden, 'Audio opt-in enables generic embeds');
+  check(buttons()[2].disabled && buttons()[3].disabled, 'Schedule and YouTube checks apply to Play');
+  const first = el('player').getAttribute('src');
+  el('next').click();
+  check(el('player').getAttribute('src') !== first, 'Next avoids immediate repetition');
+  el('previous').click();
+  check(el('player').getAttribute('src') === first, 'Back restores the previous camera');
+  el('hold').click();
+  check(el('hold').getAttribute('aria-pressed') === 'true', 'Stay here marks rotation as held');
+  el('wildlife').click();
+  check(el('player').hidden, 'Collection changes clear ineligible players while held');
+  frame.remove();
+
+  const wallpaper = await openApp('?wallpaper=1');
+  check(!wallpaper.contentDocument.getElementById('wildlife').checked, 'Settings persisted');
+  check(wallpaper.contentDocument.getElementById('player').hidden, 'Wallpaper mode skips generic iframe');
+  check(wallpaper.contentWindow.getComputedStyle(
+    wallpaper.contentDocument.querySelector('nav')
+  ).display === 'none', 'Wallpaper controls are hidden');
+  wallpaper.remove();
+  result.textContent = 'PASS';
+} catch (error) {
+  result.textContent = 'FAIL: ' + error.message;
+} finally {
+  if (baseline === null) localStorage.removeItem(key);
+  else localStorage.setItem(key, baseline);
+}
+</script>
