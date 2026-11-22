@@ -160,6 +160,7 @@ let playbackStatus = '';
 let mediaGeneration = 0;
 let hlsPlayer;
 let hlsLibrary;
+let bufferingTimer;
 let companion;
 let desktopViewable = !controlledWallpaper;
 function save() {
@@ -254,7 +255,8 @@ function playStream(stream, record) {
   const video = $('video');
   const player = $('player');
   const generation = ++mediaGeneration;
-  video.onended = video.onerror = video.onplaying = null;
+  clearTimeout(bufferingTimer);
+  video.onended = video.onerror = video.onplaying = video.onwaiting = null;
   hlsPlayer?.destroy();
   hlsPlayer = undefined;
   video.pause();
@@ -297,7 +299,18 @@ function playStream(stream, record) {
       else pickNext();
     }
     video.onended = video.onerror = failedPlayback;
+    video.onwaiting = () => {
+      if (!desktopViewable || video.paused) return;
+      clearTimeout(bufferingTimer);
+      bufferingTimer = setTimeout(() => {
+        if (generation !== mediaGeneration || !desktopViewable || video.paused) return;
+        playbackStatus = 'Buffering · Waiting for the feed';
+        display();
+      }, 1000);
+    };
     video.onplaying = () => {
+      clearTimeout(bufferingTimer);
+      if (!desktopViewable) return;
       playbackStatus = 'Playing · Live status unverified';
       const still = $('lastFrame');
       if (still.width > 0 && video.requestVideoFrameCallback) {
@@ -321,7 +334,7 @@ function playStream(stream, record) {
           if (error.fatal) failedPlayback();
         });
         hlsPlayer.on(Hls.Events.MANIFEST_PARSED, () => {
-          if (generation === mediaGeneration) video.play().catch(() => {});
+          if (generation === mediaGeneration && desktopViewable) video.play().catch(() => {});
         });
         hlsPlayer.loadSource(stream.embed);
         hlsPlayer.attachMedia(video);
@@ -502,17 +515,48 @@ function publishStatus() {
     if (lastStatus === signature) lastStatus = undefined;
   });
 }
+function updateDesktopVisibility(fraction) {
+  const viewable = typeof fraction === 'number' && fraction > 0.5;
+  if (desktopViewable === viewable) return;
+  if (!viewable) rememberFrame();
+  desktopViewable = viewable;
+  if (!current) {
+    refreshEligibility();
+    return;
+  }
+  if (!eligible().includes(current)) {
+    refreshEligibility();
+    return;
+  }
+  if (!hlsPlayer) {
+    playStream(current, false);
+    return;
+  }
+
+  const video = $('video');
+  clearTimeout(bufferingTimer);
+  if (viewable) {
+    playbackStatus = 'Resuming live feed';
+    const livePosition = hlsPlayer.liveSyncPosition;
+    if (Number.isFinite(livePosition) && livePosition - video.currentTime > 6) {
+      video.currentTime = livePosition;
+    }
+    hlsPlayer.startLoad(-1);
+    video.play().catch(() => {});
+  } else {
+    video.pause();
+    hlsPlayer.stopLoad();
+    const waiting = 'Waiting for more than half the desktop to be visible';
+    playbackStatus = $('lastFrame').width > 0 ? 'Paused · Showing last frame' : 'Paused · ' + waiting;
+    $('emptyStatus').textContent = waiting;
+  }
+  display();
+  schedule();
+}
 if (controls || controlledWallpaper) {
   companion = connectCompanion(controls ? 'controls' : 'wallpaper', {
     settings: applySharedSettings,
-    visibility(fraction) {
-      const viewable = typeof fraction === 'number' && fraction > 0.5;
-      if (desktopViewable === viewable) return;
-      if (!viewable) rememberFrame();
-      desktopViewable = viewable;
-      if (current) playStream(current, false);
-      else refreshEligibility();
-    },
+    visibility: updateDesktopVisibility,
     command({ action, id }) {
       if (action === 'play') {
         const stream = eligible().find(candidate => candidate.id === id);

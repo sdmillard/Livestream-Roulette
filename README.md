@@ -26,7 +26,7 @@ The companion puts the same cascading menus in a translucent popover above the p
 
 To diagnose the connection, open `http://127.0.0.1:8768/?controls=1` in a regular browser. It uses the same settings and playback controls. Keep one control surface open while editing the camera list.
 
-Companion mode plays media while more than half of the primary desktop's working area is visible. When coverage reaches half, it keeps the last available video frame on screen and unloads the stream. It reconnects to the same camera when enough of the desktop is visible again. The still stays in memory, and playback waits for a fresh Windows coverage sample.
+Companion mode plays media while more than half of the primary desktop's working area is visible. When coverage reaches half, it keeps the last available video frame on screen and stops fetching the stream. HLS resumes through the existing player when possible. Other direct video reconnects to the same camera. The still stays in memory, and playback waits for a fresh Windows coverage sample.
 
 ## Run tests
 
