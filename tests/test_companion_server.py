@@ -2,6 +2,7 @@ import json
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from threading import Thread
+from time import monotonic
 import unittest
 from urllib.error import HTTPError
 from urllib.request import Request, urlopen
@@ -61,6 +62,16 @@ class CompanionTests(unittest.TestCase):
             with self.assertRaises(HTTPError) as error:
                 self.request(path, payload, origin, headers)
             self.assertEqual(error.exception.code, code)
+
+    def test_visibility_is_validated_and_expires(self):
+        self.assertIsNone(self.request("/api/session")["visibility"])
+        self.request("/api/visibility", {"fraction": 0.5})
+        self.assertEqual(self.request("/api/session")["visibility"], 0.5)
+        with self.assertRaises(HTTPError) as error:
+            self.request("/api/visibility", {"fraction": 1.1})
+        self.assertEqual(error.exception.code, 400)
+        self.server.visibility_time = monotonic() - 3
+        self.assertIsNone(self.request("/api/session")["visibility"])
 
 
 if __name__ == "__main__":

@@ -1,6 +1,8 @@
 using System;
 using System.Diagnostics;
 using System.Drawing;
+using System.Globalization;
+using System.Net;
 using System.Runtime.InteropServices;
 using System.Web.Script.Serialization;
 using System.Windows.Forms;
@@ -12,10 +14,11 @@ public sealed class ControlPopover : Form
     [DllImport("user32.dll")] private static extern bool SetProcessDPIAware();
 
     private readonly WebView2 web = new WebView2();
-    private readonly Timer desktopTimer = new Timer { Interval = 200 };
+    private readonly Timer desktopTimer = new Timer { Interval = 500 };
     private readonly JavaScriptSerializer json = new JavaScriptSerializer();
     private readonly Uri controlsUrl;
     private bool reportedReady;
+    private bool reportingVisibility;
 
     protected override bool ShowWithoutActivation { get { return true; } }
 
@@ -64,7 +67,32 @@ public sealed class ControlPopover : Form
             if (web.CoreWebView2 != null)
                 web.CoreWebView2.PostWebMessageAsString("collapse");
         };
-        desktopTimer.Tick += delegate { PlaceAboveTaskbar(); };
+        desktopTimer.Tick += async delegate
+        {
+            PlaceAboveTaskbar();
+            if (reportingVisibility) return;
+            reportingVisibility = true;
+            try
+            {
+                var visible = DesktopVisibility.Measure(Screen.PrimaryScreen.WorkingArea, Handle);
+                using (var client = new WebClient())
+                {
+                    client.Proxy = null;
+                    client.Headers[HttpRequestHeader.ContentType] = "application/json";
+                    client.Headers["Origin"] = controlsUrl.GetLeftPart(UriPartial.Authority);
+                    var body = "{\"fraction\":" + visible.ToString(CultureInfo.InvariantCulture) + "}";
+                    await client.UploadStringTaskAsync(new Uri(controlsUrl, "/api/visibility"), "POST", body);
+                }
+            }
+            catch (WebException)
+            {
+                // The wallpaper treats missing measurements as covered.
+            }
+            finally
+            {
+                reportingVisibility = false;
+            }
+        };
         desktopTimer.Start();
         FormClosed += delegate { desktopTimer.Dispose(); };
     }

@@ -20,16 +20,19 @@ Check [source permissions and Wallpaper Engine compatibility](docs/VALIDATION.md
 The companion puts the same cascading menus in a translucent popover above the primary taskbar. The gear stays visible when you switch windows, and open panels close when they lose focus. The companion shares settings with Wallpaper Engine over a loopback-only service.
 
 1. Run `python companion_server.py` from the repository root and leave it running.
-2. Run `powershell.exe -NoProfile -STA -File .\windows\Start-Controls.ps1` from a second terminal. This uses Windows PowerShell 5.1 and the installed Edge WebView2 Runtime. On first run it downloads Microsoft's WebView2 SDK from NuGet.
+2. Run `powershell.exe -NoProfile -STA -ExecutionPolicy RemoteSigned -File .\windows\Start-Controls.ps1` from a second terminal. This uses Windows PowerShell 5.1 and the installed Edge WebView2 Runtime. On first run it downloads Microsoft's WebView2 SDK from NuGet.
 3. In Wallpaper Engine, select **Open Wallpaper → Open from URL**. Enter `http://127.0.0.1:8768/?wallpaper=1&companion=1` and enable **Use Livestream Mode**.
 4. Return to the desktop and open the gear. Add a publisher-authorized direct source under **Settings → Cameras**. A direct HLS source can use an HTTPS `.m3u8` URL if its server allows cross-origin playlist and segment requests. The native control and wallpaper read the shared settings from the local service. The settings file is stored in `%LOCALAPPDATA%/Livestream Roulette/settings.json`.
 
 To diagnose the connection, open `http://127.0.0.1:8768/?controls=1` in a regular browser. It uses the same settings and playback controls. Keep one control surface open while editing the camera list.
 
+Companion mode plays media while more than half of the primary desktop's working area is visible. When coverage reaches half, it unloads the media, keeps the current camera selected, and reconnects when enough of the desktop is visible again. It waits for a fresh Windows coverage sample before loading media.
+
 ## Run tests
 
 - Run `node --test tests/stream-rules.test.mjs` with Node.js 20+ for URL, schedule, and playback eligibility checks.
 - Run `python -B -m unittest discover -s tests -p test_companion_server.py` for loopback settings persistence, command sequencing, and request validation.
+- Run `powershell.exe -NoProfile -ExecutionPolicy RemoteSigned -File .\tests\desktop-visibility.ps1` for Windows coverage geometry, including overlapping windows and off-screen rectangles.
 - With the loopback server running, open `http://127.0.0.1:8765/tests/browser.html` in Chrome or Edge. Use a dedicated profile or private window. The page temporarily replaces this origin's playlist and reports **PASS** or the first failed check. It exercises browser controls with synthetic entries.
 
 See the [product and technical design](docs/DESIGN.md) for the roadmap.

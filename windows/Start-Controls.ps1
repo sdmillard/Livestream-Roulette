@@ -41,7 +41,8 @@ $env:Path = "$native;$env:Path"
 [Reflection.Assembly]::LoadFrom($core) | Out-Null
 [Reflection.Assembly]::LoadFrom($forms) | Out-Null
 if (-not ('ControlPopover' -as [type])) {
-    Add-Type -Path (Join-Path $PSScriptRoot 'ControlPopover.cs') -ReferencedAssemblies @(
+    $sources = @('ControlPopover.cs', 'DesktopVisibility.cs') | ForEach-Object { Join-Path $PSScriptRoot $_ }
+    Add-Type -Path $sources -ReferencedAssemblies @(
         'System.dll', 'System.Drawing.dll', 'System.Windows.Forms.dll', 'System.Web.Extensions.dll', $core, $forms
     )
 }

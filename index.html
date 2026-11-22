@@ -160,6 +160,7 @@ let mediaGeneration = 0;
 let hlsPlayer;
 let hlsLibrary;
 let companion;
+let desktopViewable = !controlledWallpaper;
 function save() {
   if (controls) companion.save(state);
   else {
@@ -174,10 +175,11 @@ function eligible() {
 function drawList(){const pool=eligible();const root=$('sources');root.replaceChildren();const heading=document.createElement('h3');heading.textContent='Saved cameras ('+state.streams.length+')';root.append(heading);for(const s of state.streams.filter(Boolean)){const entry=document.createElement('div');entry.className='item';const name=document.createElement('strong');name.textContent=s.title;const desc=document.createElement('small');desc.textContent=s.institution+' · '+s.collection;const row=document.createElement('div');row.className='row';const play=document.createElement('button');play.textContent='Play';play.disabled=!pool.includes(s);play.onclick=()=>{if(eligible().includes(s))playStream(s,true)};const remove=document.createElement('button');remove.textContent='Remove';remove.onclick=()=>{state.streams=state.streams.filter(x=>x.id!==s.id);save();drawList();refreshEligibility();schedule();};row.append(play,remove);entry.append(name,desc,row);root.append(entry)}}
 function display() {
   if (controlledWallpaper) publishStatus();
-  $('player').hidden = !current || current.kind === 'video';
-  $('video').hidden = !current || current.kind !== 'video';
-  $('empty').hidden = Boolean(current);
-  $('meta').hidden = !current || !state.showInfo;
+  const showing = current && desktopViewable;
+  $('player').hidden = !showing || current.kind === 'video';
+  $('video').hidden = !showing || current.kind !== 'video';
+  $('empty').hidden = Boolean(showing);
+  $('meta').hidden = !showing || !state.showInfo;
   $('noCamera').hidden = Boolean(current);
   $('cameraDetailsContent').hidden = !current;
   if (!current) return;
@@ -201,7 +203,7 @@ function display() {
 }
 function schedule() {
   clearTimeout(timer);
-  if (!controls && !document.hidden && !hold && current && eligible().length > 1) {
+  if (!controls && desktopViewable && !document.hidden && !hold && current && eligible().length > 1) {
     timer = setTimeout(pickNext, state.interval * 60000);
   }
 }
@@ -254,6 +256,13 @@ function playStream(stream, record) {
     history = history.slice(0, index + 1);
     history.push(stream.id);
     index = history.length - 1;
+  }
+  if (!desktopViewable) {
+    playbackStatus = 'Paused · Waiting for more than half the desktop to be visible';
+    $('emptyStatus').textContent = playbackStatus;
+    display();
+    schedule();
+    return;
   }
   if (stream.kind === 'video') {
     playbackStatus = 'Press Play if autoplay is blocked. Live status unverified.';
@@ -465,6 +474,13 @@ function publishStatus() {
 if (controls || controlledWallpaper) {
   companion = connectCompanion(controls ? 'controls' : 'wallpaper', {
     settings: applySharedSettings,
+    visibility(fraction) {
+      const viewable = typeof fraction === 'number' && fraction > 0.5;
+      if (desktopViewable === viewable) return;
+      desktopViewable = viewable;
+      if (current) playStream(current, false);
+      else refreshEligibility();
+    },
     command({ action, id }) {
       if (action === 'play') {
         const stream = eligible().find(candidate => candidate.id === id);

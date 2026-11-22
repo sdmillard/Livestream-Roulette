@@ -4,7 +4,9 @@ async function request(path, data) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data)
   };
-  const response = await fetch('/api/' + path, { ...options, cache: 'no-store' });
+  const response = await fetch('/api/' + path, {
+    ...options, cache: 'no-store', signal: AbortSignal.timeout(2000)
+  });
   if (!response.ok) throw new Error('Companion request failed: ' + response.status);
   return response.json();
 }
@@ -20,6 +22,7 @@ export function connectCompanion(mode, handlers) {
     try {
       const previousRevision = revision;
       const session = await request('session');
+      if (mode === 'wallpaper') handlers.visibility(session.visibility);
       if (pending === 0 && previousRevision === revision) handlers.settings(session.settings);
       if (mode === 'controls') {
         handlers.status(session.status);
@@ -37,6 +40,7 @@ export function connectCompanion(mode, handlers) {
       }
       handlers.error('');
     } catch {
+      if (mode === 'wallpaper') handlers.visibility(null);
       handlers.error('Wallpaper companion is unavailable.');
     } finally {
       setTimeout(poll, 750);

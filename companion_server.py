@@ -6,6 +6,7 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 import json
 import os
 from pathlib import Path
+from time import monotonic
 from urllib.parse import urlsplit
 from uuid import uuid4
 
@@ -31,6 +32,8 @@ class CompanionServer(HTTPServer):
         self.commands = deque(maxlen=64)
         self.sequence = 0
         self.status = None
+        self.visibility = None
+        self.visibility_time = 0
 
     def save(self, settings):
         self.settings_path.parent.mkdir(parents=True, exist_ok=True)
@@ -44,7 +47,7 @@ class Handler(BaseHTTPRequestHandler):
     timeout = 3
 
     def log_request(self, code="-", size="-"):
-        if self.path != "/api/session" or code != 200:
+        if self.path not in {"/api/session", "/api/visibility"} or code != 200:
             super().log_request(code, size)
 
     def respond(self, code, body, content_type="application/json"):
@@ -68,8 +71,10 @@ class Handler(BaseHTTPRequestHandler):
             return
         path = urlsplit(self.path).path
         if path == "/api/session":
+            visibility = server.visibility if monotonic() - server.visibility_time <= 2.5 else None
             self.reply(200, {"settings": server.settings, "epoch": server.epoch,
-                             "commands": list(server.commands), "status": server.status})
+                             "commands": list(server.commands), "status": server.status,
+                             "visibility": visibility})
         elif path in ASSETS:
             filename, content_type = ASSETS[path]
             self.respond(200, (ROOT / filename).read_bytes(), content_type)
@@ -118,6 +123,13 @@ class Handler(BaseHTTPRequestHandler):
                                     "id": data.get("id")})
         elif self.path == "/api/status":
             server.status = data
+        elif self.path == "/api/visibility":
+            fraction = data.get("fraction")
+            if type(fraction) not in (int, float) or not 0 <= fraction <= 1:
+                self.reply(400, {"error": "Invalid desktop visibility fraction"})
+                return
+            server.visibility = fraction
+            server.visibility_time = monotonic()
         else:
             self.reply(400, {"error": "Unknown command"})
             return
