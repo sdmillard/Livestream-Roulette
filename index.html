@@ -16,7 +16,7 @@
 .menu-actions,.submenu{background:#081923f7;border:1px solid #38515b;border-radius:12px;box-shadow:0 8px 30px #0008}
 .menu-actions{position:absolute;right:0;bottom:calc(100% + 8px);width:148px;display:grid;gap:4px;padding:6px}
 .menu-actions button{text-align:left}
-.menu-actions button[aria-expanded="true"]{background:#315b57;border-color:#81cbeb}
+.menu-actions button[aria-expanded="true"],.submenu button[aria-expanded="true"]{background:#315b57;border-color:#81cbeb}
 button{cursor:pointer;background:#173342;color:white;border:1px solid #456573;padding:9px 13px;border-radius:9px}
 button:hover{background:#285467}button:focus-visible,input:focus-visible,select:focus-visible,a:focus-visible{outline:3px solid #81cbeb;outline-offset:2px}
 button[aria-pressed="true"]{background:#315b57}
@@ -26,6 +26,12 @@ a{color:#a4e0fa}
 .submenu{position:fixed;right:168px;bottom:60px;width:min(400px,calc(100vw - 180px));max-height:calc(100dvh - 72px);overflow:auto;padding:14px}
 .playback{width:min(184px,calc(100vw - 180px));display:grid;gap:4px}
 .playback button{text-align:left}
+.settings-categories{width:148px;display:grid;gap:4px;padding:6px}
+.settings-categories button{text-align:left}
+.settings-detail{right:324px;width:min(400px,calc(100vw - 336px))}
+.settings-detail h2{font-size:1rem;margin:0}
+.camera-detail{right:360px;width:min(360px,calc(100vw - 372px))}
+.camera-detail a{display:inline-block;margin-right:8px}
 aside h2{margin:0 0 5px}aside p,small{color:#bac9ce;line-height:1.5}
 label{display:block;margin:14px 0 5px}input,select{width:100%;padding:10px;background:#0e2a39;color:#fff;border:1px solid #4b6571;border-radius:8px}
 input[type=checkbox]{width:auto;margin-right:8px}
@@ -37,7 +43,9 @@ fieldset label{margin:9px 0}
 .note{font-size:.84rem}.error{color:#ffd6a8}
 [hidden]{display:none!important}
 body.wallpaper .toolbar,body.wallpaper .submenu{display:none}
-@media(max-width:480px){.menu-actions{width:auto;grid-auto-flow:column}.submenu{right:12px;bottom:114px;width:min(400px,calc(100vw - 24px));max-height:calc(100dvh - 126px)}.meta{top:auto;bottom:60px;left:8px;max-width:calc(100% - 16px)}body.wallpaper .meta{bottom:8px}}
+@media(max-width:480px){.meta{top:auto;bottom:60px;left:8px;max-width:calc(100% - 16px)}body.wallpaper .meta{bottom:8px}}
+@media(max-width:540px){.menu-actions{width:max-content;grid-auto-flow:column}.menu-actions button{white-space:nowrap}.submenu{right:12px;bottom:146px;width:min(400px,calc(100vw - 24px));max-height:calc(100dvh - 158px)}.settings-categories{width:min(350px,calc(100vw - 24px));grid-template-columns:repeat(3,minmax(0,1fr))}.settings-categories button{padding:8px 4px;text-align:center}.settings-detail{bottom:206px;max-height:calc(100dvh - 218px)}}
+@media(max-width:540px){.playback{grid-template-columns:repeat(2,minmax(0,1fr))}.camera-detail{bottom:282px;max-height:calc(100dvh - 294px)}}
 </style>
 </head>
 <body>
@@ -54,15 +62,34 @@ body.wallpaper .toolbar,body.wallpaper .submenu{display:none}
 <button id="previous" title="Previous camera">← Back</button>
 <button id="next" title="Next camera">Next →</button>
 <button id="hold" aria-pressed="false" title="Stop automatic rotation">Stay here</button>
-<button id="info" aria-pressed="false">Camera info</button>
+<button id="info" aria-expanded="false" aria-controls="cameraDetails">‹ Camera info</button>
 </section>
-<aside id="panel" class="submenu" hidden aria-label="Settings">
-<h2>Settings</h2>
-<p id="status" class="note" role="status" hidden></p>
-<p>Browser prototype · Local-first · No account or telemetry</p>
+<aside id="cameraDetails" class="submenu settings-detail camera-detail" hidden aria-labelledby="cameraDetailsHeading">
+<h2 id="cameraDetailsHeading" tabindex="-1">Camera info</h2>
+<p id="noCamera">No camera selected.</p>
+<div id="cameraDetailsContent" hidden>
+<p><strong id="detailTitle"></strong><br><span id="detailInstitution"></span></p>
+<a id="detailOriginal" target="_blank" rel="noopener noreferrer" hidden>Watch original</a>
+<a id="detailDonation" target="_blank" rel="noopener noreferrer" hidden>Support source</a>
+<p id="status" class="note" role="status"></p>
+</div>
+</aside>
+<section id="panel" class="submenu settings-categories" hidden aria-label="Settings">
+<button id="rotationCategory" aria-expanded="false" aria-controls="rotationSettings">‹ Rotation</button>
+<button id="displayCategory" aria-expanded="false" aria-controls="displaySettings">‹ Display</button>
+<button id="camerasCategory" aria-expanded="false" aria-controls="cameraSettings">‹ Cameras</button>
+</section>
+<aside id="rotationSettings" class="submenu settings-detail" hidden aria-labelledby="rotationHeading">
+<h2 id="rotationHeading">Rotation</h2>
 <label for="interval">Rotate every</label><select id="interval"><option value="15">15 minutes</option><option value="30">30 minutes</option><option value="60">60 minutes</option><option value="120">120 minutes</option></select>
+</aside>
+<aside id="displaySettings" class="submenu settings-detail" hidden aria-labelledby="displayHeading">
+<h2 id="displayHeading">Display</h2>
 <label><input id="startMuted" type="checkbox" checked> Require muted playback</label>
 <label><input id="showInfo" type="checkbox"> Show camera info overlay</label>
+</aside>
+<aside id="cameraSettings" class="submenu settings-detail" hidden aria-labelledby="cameraHeading">
+<h2 id="cameraHeading">Cameras</h2>
 <fieldset><legend>Collections</legend><label><input type="checkbox" id="wildlife" checked> Wildlife</label><label><input type="checkbox" id="space" checked> Space</label><label><input type="checkbox" id="nature" checked> Nature</label><label><input type="checkbox" id="other" checked> Other</label></fieldset>
 <h3>Your permitted cameras</h3>
 <p class="note">Use publisher-authorized sources. Direct video supports muting and player errors. Generic embeds require audio opt-in and are available in browser mode only.</p>
@@ -106,7 +133,32 @@ function eligible() {
   return state.streams.filter(s => s && !failed.has(s.id) && canPlay(s, state, wallpaper, now));
 }
 function drawList(){const pool=eligible();const root=$('sources');root.replaceChildren();const heading=document.createElement('h3');heading.textContent='Saved cameras ('+state.streams.length+')';root.append(heading);for(const s of state.streams.filter(Boolean)){const entry=document.createElement('div');entry.className='item';const name=document.createElement('strong');name.textContent=s.title;const desc=document.createElement('small');desc.textContent=s.institution+' · '+s.collection;const row=document.createElement('div');row.className='row';const play=document.createElement('button');play.textContent='Play';play.disabled=!pool.includes(s);play.onclick=()=>{if(eligible().includes(s))playStream(s,true)};const remove=document.createElement('button');remove.textContent='Remove';remove.onclick=()=>{state.streams=state.streams.filter(x=>x.id!==s.id);save();drawList();refreshEligibility();schedule();};row.append(play,remove);entry.append(name,desc,row);root.append(entry)}}
-function display(){const player=$('player'),empty=$('empty');player.hidden=!current || current.kind==='video';$('video').hidden=!current || current.kind!=='video';empty.hidden=!!current;$('meta').hidden=!current || !state.showInfo;$('info').setAttribute('aria-pressed',String(state.showInfo));$('status').hidden=!current;if(!current)return;$('title').textContent=current.title;$('institution').textContent=current.institution+' · '+current.collection;for(const [id,url] of [['original',current.original],['donation',current.donation]]){const a=$(id),u=https(url);a.hidden=!u;if(u)a.href=u;else a.removeAttribute('href')}$('status').textContent=playbackStatus;}
+function display() {
+  $('player').hidden = !current || current.kind === 'video';
+  $('video').hidden = !current || current.kind !== 'video';
+  $('empty').hidden = Boolean(current);
+  $('meta').hidden = !current || !state.showInfo;
+  $('noCamera').hidden = Boolean(current);
+  $('cameraDetailsContent').hidden = !current;
+  if (!current) return;
+
+  const institution = current.institution + ' · ' + current.collection;
+  $('title').textContent = $('detailTitle').textContent = current.title;
+  $('institution').textContent = $('detailInstitution').textContent = institution;
+  for (const [ids, rawUrl] of [
+    [['original', 'detailOriginal'], current.original],
+    [['donation', 'detailDonation'], current.donation]
+  ]) {
+    const url = https(rawUrl);
+    for (const id of ids) {
+      const link = $(id);
+      link.hidden = !url;
+      if (url) link.href = url;
+      else link.removeAttribute('href');
+    }
+  }
+  $('status').textContent = playbackStatus;
+}
 function schedule() {
   clearTimeout(timer);
   if (!document.hidden && !hold && current && eligible().length > 1) {
@@ -177,13 +229,30 @@ function retryNext() {
 }
 $('next').onclick=retryNext;$('previous').onclick=previous;
 $('hold').onclick=()=>{hold=!hold;$('hold').setAttribute('aria-pressed',String(hold));$('hold').textContent=hold?'Resume rotation':'Stay here';refreshEligibility();schedule()};
-$('info').onclick=()=>{state.showInfo=!state.showInfo;$('showInfo').checked=state.showInfo;save();display()};
 const branches = {
   playback: 'playbackPanel',
   settings: 'panel'
 };
 let activeBranch = null;
+const categories = {
+  info: 'cameraDetails',
+  rotationCategory: 'rotationSettings',
+  displayCategory: 'displaySettings',
+  camerasCategory: 'cameraSettings'
+};
+let activeCategory = null;
+function openCategory(category, restoreFocus = true) {
+  const previous = activeCategory;
+  activeCategory = category;
+  for (const [id, panel] of Object.entries(categories)) {
+    $(panel).hidden = id !== category;
+    $(id).setAttribute('aria-expanded', String(id === category));
+  }
+  if (category) $(categories[category]).querySelector('[tabindex], input, select').focus();
+  else if (previous && restoreFocus) $(previous).focus();
+}
 function openBranch(branch) {
+  openCategory(null, false);
   const previous = activeBranch;
   activeBranch = branch;
   for (const [id, panel] of Object.entries(branches)) {
@@ -204,6 +273,9 @@ $('menu').onclick = () => menu($('menuActions').hidden);
 for (const id of Object.keys(branches)) {
   $(id).onclick = () => openBranch(activeBranch === id ? null : id);
 }
+for (const id of Object.keys(categories)) {
+  $(id).onclick = () => openCategory(activeCategory === id ? null : id);
+}
 $('interval').value=String(state.interval);$('interval').onchange=()=>{state.interval=Number($('interval').value);save();schedule()};
 $('startMuted').checked=state.muted;$('startMuted').onchange=()=>{state.muted=$('startMuted').checked;save();$('video').defaultMuted=state.muted;$('video').muted=state.muted;refreshEligibility();schedule()};
 $('showInfo').checked=state.showInfo;$('showInfo').onchange=()=>{state.showInfo=$('showInfo').checked;save();display()};
@@ -223,7 +295,8 @@ $('addForm').onsubmit=e=>{e.preventDefault();const embed=https($('newEmbed').val
  state.streams.push(s);save();drawList();$('addForm').reset();$('formMessage').textContent='Camera saved locally. Playback and liveness are not verified.';refreshEligibility();schedule()};
 window.addEventListener('keydown', e => {
   if (e.key === 'Escape') {
-    if (activeBranch) openBranch(null);
+    if (activeCategory) openCategory(null);
+    else if (activeBranch) openBranch(null);
     else if (!$('menuActions').hidden) menu(false);
     return;
   }

@@ -6,8 +6,10 @@ Livestream Roulette rotates among publisher-authorized live cameras. Wildlife is
 
 1. From the repository root, run `python -m http.server 8765 --bind 127.0.0.1` with Python 3.
 2. Open `http://127.0.0.1:8765/` in a modern browser.
-3. Open **Menu → Settings** in the lower-right corner. Add a camera with its official watch page, an authorized HTTPS media or player URL, and optional daily live hours in the camera's time zone.
-4. Choose a collection and interval. Use **Next**, **Back**, and **Stay here** to control rotation.
+3. Open **Menu → Settings → Cameras** in the lower-right corner. Add a camera with its official watch page, an authorized HTTPS media or player URL, and optional daily live hours in the camera's time zone.
+4. Choose collections in **Cameras** and an interval in **Rotation**. Use **Menu → Playback** for **Next**, **Back**, and **Stay here**.
+
+Open **Playback → Camera info** for source links and playback status. The on-stream info overlay is optional under **Settings → Display**.
 
 Settings stay in localStorage for that browser profile and origin. Video loads from the publisher. For mute by default, use a direct video URL with a codec and transport the browser supports. Generic iframes require disabling **Require muted playback**, since the app cannot control their audio. User-provided iframe entries from the initial prototype are preserved.
 
