@@ -2,6 +2,8 @@
 
 ## First wildlife candidate
 
+See the [wildlife feed shortlist](FEED-RESEARCH.md) for other publishers, policy evidence, and delivery options.
+
 Monterey Bay Aquarium's [official camera directory](https://www.montereybayaquarium.org/cams-videos/live-cams) lists Jelly Cam live daily from 07:00 to 19:00 Pacific. Use `America/Los_Angeles` when evaluating this schedule. The [official Jelly Cam page](https://www.montereybayaquarium.org/cams-videos/live-cams/jelly-cam) identifies an off-hours recording and points to YouTube troubleshooting. The publisher page establishes provenance and the directory supplies the expected schedule. The camera remains a discovery link while a permitted wallpaper player is unconfirmed.
 
 For the first playable default, record the publisher's approval or applicable published terms for each intended use, the official player or direct media endpoint, the local schedule and recorded fallback behavior, and the date of a playback check. Verify the live indication with the publisher during scheduled hours and check the off-hours behavior separately. Recheck after any URL, player, terms, or schedule change. Ask the publisher about an authorized non-YouTube delivery option if the camera is otherwise suitable. No publisher outreach has been sent.
