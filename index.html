@@ -53,6 +53,9 @@ fieldset label{margin:9px 0}
 .controls #menu:hover,.controls #menu:focus-visible,.controls #menu[aria-expanded="true"]{background:#285467;border-color:#81cbeb}
 .controls .menu-label{display:none}
 .controls .menu-actions,.controls .submenu{background:#0b1c26}
+.tray-controls #menu{visibility:hidden}
+.tray-controls .menu-actions{bottom:0}
+.tray-controls .submenu{translate:0 44px}
 @media(max-width:480px){.meta{top:auto;bottom:60px;left:8px;max-width:calc(100% - 16px)}}
 @media(max-width:540px){.menu-actions{width:max-content;grid-auto-flow:column}.menu-actions button{white-space:nowrap}.submenu{right:12px;bottom:146px;width:min(400px,calc(100vw - 24px));max-height:calc(100dvh - 158px)}.settings-categories{width:min(350px,calc(100vw - 24px));grid-template-columns:repeat(3,minmax(0,1fr))}.settings-categories button{padding:8px 4px;text-align:center}.settings-detail{bottom:206px;max-height:calc(100dvh - 218px)}}
 @media(max-width:540px){.playback{grid-template-columns:repeat(2,minmax(0,1fr))}.camera-detail{bottom:282px;max-height:calc(100dvh - 294px)}}
@@ -145,6 +148,7 @@ function readSettings(data) {
 const query = new URLSearchParams(location.search);
 const wallpaper = query.get('wallpaper') === '1';
 const controls = query.get('controls') === '1';
+const trayControls = controls && query.get('tray') === '1' && Boolean(window.chrome?.webview);
 const controlledWallpaper = wallpaper && query.get('companion') === '1';
 let state = readSettings();
 if (!controls && !controlledWallpaper) {
@@ -152,8 +156,9 @@ if (!controls && !controlledWallpaper) {
 }
 document.body.classList.toggle('wallpaper', wallpaper);
 document.body.classList.toggle('controls', controls);
+document.body.classList.toggle('tray-controls', trayControls);
 document.body.classList.toggle('controlled-wallpaper', controlledWallpaper);
-if (controlledWallpaper) $('sourceHint').textContent = 'Use the desktop gear to add an authorized live source.';
+if (controlledWallpaper) $('sourceHint').textContent = 'Open Livestream Roulette in the Windows system tray to add a source.';
 const failed = new Set();
 let current=null,history=[],index=-1,timer=null,hold=false;
 let playbackStatus = '';
@@ -455,7 +460,10 @@ window.addEventListener('keydown', e => {
   if (e.key === 'Escape') {
     if (activeCategory) openCategory(null);
     else if (activeBranch) openBranch(null);
-    else if (!$('menuActions').hidden) menu(false);
+    else if (!$('menuActions').hidden) {
+      menu(false, !trayControls);
+      if (trayControls) window.chrome.webview.postMessage('close-controls');
+    }
     return;
   }
   if (e.target.closest('input,select,textarea')) return;
@@ -586,6 +594,7 @@ if (controls || controlledWallpaper) {
     $('newKind').querySelector('[value="iframe"]').disabled = true;
     reportControlBounds();
     window.chrome?.webview?.addEventListener('message', event => {
+      if (event.data === 'expand' && trayControls) menu(true);
       if (event.data === 'collapse' && !$('menuActions').hidden) menu(false, false);
     });
   }

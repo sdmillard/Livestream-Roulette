@@ -77,7 +77,8 @@ export function reportControlBounds() {
   function report() {
     cancelAnimationFrame(frame);
     frame = requestAnimationFrame(() => {
-      const rects = controls.filter(element => element.getClientRects().length)
+      const rects = controls.filter(element => element.getClientRects().length
+        && getComputedStyle(element).visibility === 'visible')
         .map(element => {
           const { left, top, width, height } = element.getBoundingClientRect();
           return { left, top, width, height };

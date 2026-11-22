@@ -46,4 +46,4 @@ if (-not ('ControlPopover' -as [type])) {
         'System.dll', 'System.Drawing.dll', 'System.Windows.Forms.dll', 'System.Web.Extensions.dll', $core, $forms
     )
 }
-[ControlPopover]::Open("$origin/?controls=1", (Join-Path $data 'ControlWebView'))
+[ControlPopover]::Open("$origin/?controls=1&tray=1", (Join-Path $data 'ControlWebView'))

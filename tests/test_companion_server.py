@@ -65,13 +65,20 @@ class CompanionTests(unittest.TestCase):
 
     def test_visibility_is_validated_and_expires(self):
         self.assertIsNone(self.request("/api/session")["visibility"])
-        self.request("/api/visibility", {"fraction": 0.5})
+        area = {"left": 0, "top": 0, "width": 0.65, "height": 0.8}
+        self.request("/api/visibility", {"fraction": 0.5, "controlsOpen": True,
+                                        "playerVisibility": 0.6, "playerArea": area})
         self.assertEqual(self.request("/api/session")["visibility"], 0.5)
+        self.assertIs(self.request("/api/session")["controlsOpen"], True)
+        self.assertEqual(self.request("/api/session")["playerVisibility"], 0.6)
+        self.assertEqual(self.request("/api/session")["playerArea"], area)
         with self.assertRaises(HTTPError) as error:
             self.request("/api/visibility", {"fraction": 1.1})
         self.assertEqual(error.exception.code, 400)
         self.server.visibility_time = monotonic() - 3
         self.assertIsNone(self.request("/api/session")["visibility"])
+        self.assertIsNone(self.request("/api/session")["controlsOpen"])
+        self.assertIsNone(self.request("/api/session")["playerArea"])
 
 
 if __name__ == "__main__":

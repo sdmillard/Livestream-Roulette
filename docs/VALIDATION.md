@@ -37,3 +37,9 @@ The Windows companion estimates visibility from the union of visible, non-minimi
 A follow-up HLS test reported a retained frame at 19.8% visibility and resumed the same feed at 73.7%. The retention path draws one available direct-video frame to an in-memory canvas before unloading the media. If coverage changes before a frame is available, the app shows its waiting state.
 
 After a buffering report, HLS suspension was changed to pause video and stop loading segments while retaining the player. Wallpaper Engine resumed the same Color Bars feed about 0.6 seconds after the test observed uncovering and reported continuous playback for the following six seconds. Prolonged media waits now appear as buffering in Camera info.
+
+## Windows tray and YouTube trial
+
+The user confirmed that the Windows notification-area icon opens the companion controls. For the separate Barn Owl Live trial, the native helper selects the larger player rectangle to the left of or above the popover, then measures visibility in that rectangle. The official YouTube iframe retains its branding and controls. The trial mounts it only with fresh geometry, a closed popover, and more than 50% measured visibility. It removes the iframe on coverage or when the tray popover opens.
+
+Wallpaper Engine 2.8.42 reported playing the Barn Owl Live embed at 100% player visibility, removing the player at 12.2%, and playing again when uncovered. This was a single live-camera trial. Full occlusion timing, mixed-DPI or additional monitors, and desktop access to the native YouTube controls with Windows icons visible remain unverified. The regular playlist still uses direct sources.

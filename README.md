@@ -17,16 +17,20 @@ Check [source permissions and Wallpaper Engine compatibility](docs/VALIDATION.md
 
 ## Windows controls companion
 
-The companion puts the same cascading menus in a translucent popover above the primary taskbar. The gear stays visible when you switch windows, and open panels close when they lose focus. The companion shares settings with Wallpaper Engine over a loopback-only service.
+The companion puts a Livestream Roulette icon in the Windows notification area. Click it to open the translucent cascading menus above the taskbar. The popover closes when it loses focus. The companion shares settings with Wallpaper Engine over a loopback-only service.
 
 1. Run `python companion_server.py` from the repository root and leave it running.
 2. Run `powershell.exe -NoProfile -STA -ExecutionPolicy RemoteSigned -File .\windows\Start-Controls.ps1` from a second terminal. This uses Windows PowerShell 5.1 and the installed Edge WebView2 Runtime. On first run it downloads Microsoft's WebView2 SDK from NuGet.
 3. In Wallpaper Engine, select **Open Wallpaper → Open from URL**. Enter `http://127.0.0.1:8768/?wallpaper=1&companion=1` and enable **Use Livestream Mode**.
-4. Return to the desktop and open the gear. Add a publisher-authorized direct source under **Settings → Cameras**. A direct HLS source can use an HTTPS `.m3u8` URL if its server allows cross-origin playlist and segment requests. The native control and wallpaper read the shared settings from the local service. The settings file is stored in `%LOCALAPPDATA%/Livestream Roulette/settings.json`.
+4. Click **Livestream Roulette** near the clock. It may appear under **Show hidden icons**. Add a publisher-authorized direct source under **Settings → Cameras**. A direct HLS source can use an HTTPS `.m3u8` URL if its server allows cross-origin playlist and segment requests. The native control and wallpaper read the shared settings from the local service. The settings file is stored in `%LOCALAPPDATA%/Livestream Roulette/settings.json`.
 
 To diagnose the connection, open `http://127.0.0.1:8768/?controls=1` in a regular browser. It uses the same settings and playback controls. Keep one control surface open while editing the camera list.
 
 Companion mode plays direct media while at least half of the primary desktop's working area is visible. When coverage exceeds half, it keeps the last available video frame on screen and stops fetching the stream. HLS resumes through the existing player when possible. Other direct video reconnects to the same camera. The still stays in memory, and playback waits for a fresh Windows coverage sample.
+
+### Barn Owl Live YouTube trial
+
+With the Windows companion running, open `http://127.0.0.1:8768/youtube-trial.html` in Wallpaper Engine URL Livestream Mode. This is a separate test wallpaper. It uses the official YouTube player for one camera, with the tray popover in a separate screen region. It starts muted when more than half of the player area is visible and removes the player when the popover opens or the area is covered past the threshold. Switch back to **Livestream Roulette Companion** in Wallpaper Engine to use the direct-feed playlist.
 
 ## Run tests
 

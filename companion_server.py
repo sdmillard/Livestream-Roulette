@@ -16,6 +16,8 @@ ASSETS = {
     "/index.html": ("index.html", "text/html; charset=utf-8"),
     "/stream-rules.mjs": ("stream-rules.mjs", "text/javascript; charset=utf-8"),
     "/companion.mjs": ("companion.mjs", "text/javascript; charset=utf-8"),
+    "/youtube-trial.html": ("youtube-trial.html", "text/html; charset=utf-8"),
+    "/youtube-trial.mjs": ("youtube-trial.mjs", "text/javascript; charset=utf-8"),
 }
 ACTIONS = {"next", "previous", "hold", "play"}
 
@@ -34,6 +36,9 @@ class CompanionServer(HTTPServer):
         self.status = None
         self.visibility = None
         self.visibility_time = 0
+        self.controls_open = None
+        self.player_visibility = None
+        self.player_area = None
 
     def save(self, settings):
         self.settings_path.parent.mkdir(parents=True, exist_ok=True)
@@ -74,7 +79,10 @@ class Handler(BaseHTTPRequestHandler):
             visibility = server.visibility if monotonic() - server.visibility_time <= 2.5 else None
             self.reply(200, {"settings": server.settings, "epoch": server.epoch,
                              "commands": list(server.commands), "status": server.status,
-                             "visibility": visibility})
+                             "visibility": visibility,
+                             "controlsOpen": server.controls_open if visibility is not None else None,
+                             "playerVisibility": server.player_visibility if visibility is not None else None,
+                             "playerArea": server.player_area if visibility is not None else None})
         elif path in ASSETS:
             filename, content_type = ASSETS[path]
             self.respond(200, (ROOT / filename).read_bytes(), content_type)
@@ -125,10 +133,23 @@ class Handler(BaseHTTPRequestHandler):
             server.status = data
         elif self.path == "/api/visibility":
             fraction = data.get("fraction")
-            if type(fraction) not in (int, float) or not 0 <= fraction <= 1:
-                self.reply(400, {"error": "Invalid desktop visibility fraction"})
+            controls_open = data.get("controlsOpen")
+            player_visibility = data.get("playerVisibility")
+            player_area = data.get("playerArea")
+            if (type(fraction) not in (int, float) or not 0 <= fraction <= 1
+                    or controls_open is not None and type(controls_open) is not bool
+                    or player_visibility is not None and
+                    (type(player_visibility) not in (int, float) or not 0 <= player_visibility <= 1)
+                    or player_area is not None and
+                    (not isinstance(player_area, dict)
+                     or not all(type(player_area.get(key)) in (int, float) and 0 <= player_area[key] <= 1
+                                for key in ("left", "top", "width", "height")))):
+                self.reply(400, {"error": "Invalid desktop visibility report"})
                 return
             server.visibility = fraction
+            server.controls_open = controls_open
+            server.player_visibility = player_visibility
+            server.player_area = player_area
             server.visibility_time = monotonic()
         else:
             self.reply(400, {"error": "Unknown command"})
