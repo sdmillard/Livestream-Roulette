@@ -9,16 +9,20 @@
 *{box-sizing:border-box}body{margin:0;min-height:100vh}button,input,select{font:inherit}
 #stage{position:fixed;inset:0;background:radial-gradient(ellipse at 60% 30%,#15374a,#050c12 70%);display:grid;place-items:center}
 #player,#video{width:100%;height:100%;border:0;background:#07111b}
+#video{object-fit:cover}
 .empty{text-align:center;max-width:38rem;padding:2rem;color:#c1d7dc;line-height:1.6}
 .empty h1{color:#fff;font-weight:550}
-.toolbar{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);display:flex;gap:8px;background:#07131de8;border:1px solid #38515b;border-radius:15px;padding:9px;align-items:center;box-shadow:0 8px 30px #0008}
+.toolbar{position:fixed;right:12px;bottom:12px}
+.menu-actions,aside{background:#081923f7;border:1px solid #38515b;border-radius:12px;box-shadow:0 8px 30px #0008}
+.menu-actions{position:absolute;right:0;bottom:calc(100% + 8px);width:148px;display:grid;gap:4px;padding:6px}
+.menu-actions button{text-align:left}
 button{cursor:pointer;background:#173342;color:white;border:1px solid #456573;padding:9px 13px;border-radius:9px}
 button:hover{background:#285467}button:focus-visible,input:focus-visible,select:focus-visible,a:focus-visible{outline:3px solid #81cbeb;outline-offset:2px}
 button[aria-pressed="true"]{background:#315b57}
 .meta{position:fixed;top:12px;left:12px;max-width:calc(100% - 24px);display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 10px;background:#07131de8;border:1px solid #38515b;border-radius:8px;padding:5px 9px;font-size:.8rem;line-height:1.4;overflow-wrap:anywhere}
 .meta h2{font-size:inherit;margin:0}.meta p{margin:0;color:#c1d7dc}
 a{color:#a4e0fa}
-aside{position:fixed;right:0;top:0;bottom:0;width:min(440px,100vw);overflow:auto;background:#081923f7;border-left:1px solid #47616b;padding:22px;box-shadow:-10px 0 40px #0008}
+aside{position:fixed;right:168px;bottom:64px;width:min(400px,calc(100vw - 180px));max-height:calc(100dvh - 76px);overflow:auto;padding:18px}
 aside h2{margin:0 0 5px}aside p,small{color:#bac9ce;line-height:1.5}
 label{display:block;margin:14px 0 5px}input,select{width:100%;padding:10px;background:#0e2a39;color:#fff;border:1px solid #4b6571;border-radius:8px}
 input[type=checkbox]{width:auto;margin-right:8px}
@@ -30,13 +34,22 @@ fieldset label{margin:9px 0}
 .note{font-size:.84rem}.error{color:#ffd6a8}
 [hidden]{display:none!important}
 body.wallpaper .toolbar,body.wallpaper aside{display:none}
-@media(max-width:600px){.toolbar{bottom:8px}.toolbar button{padding:8px}.meta{top:auto;bottom:90px;left:8px;max-width:calc(100% - 16px)}body.wallpaper .meta{bottom:8px}}
+@media(max-width:600px){aside{right:12px;width:min(400px,calc(100vw - 24px))}.toolbar:has(+ aside:not([hidden])) .menu-actions{display:none}.meta{top:auto;bottom:60px;left:8px;max-width:calc(100% - 16px)}body.wallpaper .meta{bottom:8px}}
 </style>
 </head>
 <body>
 <main id="stage" aria-label="Livestream canvas"><div id="empty" class="empty"><h1>A window into the world.</h1><p>Add an authorized live source in Settings.</p><p id="emptyStatus" role="status"></p></div><iframe id="player" title="Selected livestream" allow="autoplay; fullscreen; picture-in-picture; encrypted-media" referrerpolicy="strict-origin-when-cross-origin" hidden></iframe><video id="video" playsinline controls muted hidden></video></main>
 <section id="meta" class="meta" hidden aria-live="polite"><h2 id="title"></h2><p id="institution"></p><a id="original" target="_blank" rel="noopener noreferrer" hidden>Watch original</a><a id="donation" target="_blank" rel="noopener noreferrer" hidden>Support source</a></section>
-<nav class="toolbar" aria-label="Playback controls"><button id="previous" title="Previous camera">← Back</button><button id="next" title="Next camera">Next →</button><button id="hold" aria-pressed="false" title="Stop automatic rotation">Stay here</button><button id="info" aria-pressed="false">Info</button><button id="settings" aria-expanded="false" aria-controls="panel">⚙ Settings</button></nav>
+<nav class="toolbar" aria-label="Playback controls">
+<div id="menuActions" class="menu-actions" hidden>
+<button id="previous" title="Previous camera">← Back</button>
+<button id="next" title="Next camera">Next →</button>
+<button id="hold" aria-pressed="false" title="Stop automatic rotation">Stay here</button>
+<button id="info" aria-pressed="false">Camera info</button>
+<button id="settings" aria-expanded="false" aria-controls="panel">Settings ›</button>
+</div>
+<button id="menu" aria-expanded="false" aria-controls="menuActions">⚙ Menu</button>
+</nav>
 <aside id="panel" hidden aria-label="Settings">
 <p id="status" class="note" role="status" hidden></p>
 <div class="row"><h2>Livestream Roulette</h2><button id="close" aria-label="Close settings">✕</button></div>
@@ -159,7 +172,20 @@ function retryNext() {
 $('next').onclick=retryNext;$('previous').onclick=previous;
 $('hold').onclick=()=>{hold=!hold;$('hold').setAttribute('aria-pressed',String(hold));$('hold').textContent=hold?'Resume rotation':'Stay here';refreshEligibility();schedule()};
 $('info').onclick=()=>{state.showInfo=!state.showInfo;$('showInfo').checked=state.showInfo;save();display()};
-function panel(open){$('panel').hidden=!open;$('settings').setAttribute('aria-expanded',String(open))}
+function panel(open, restoreFocus = true) {
+  $('panel').hidden = !open;
+  $('settings').setAttribute('aria-expanded', String(open));
+  if (open) $('close').focus();
+  else if (restoreFocus) $('settings').focus();
+}
+function menu(open) {
+  if (!open) panel(false, false);
+  $('menuActions').hidden = !open;
+  $('menu').setAttribute('aria-expanded', String(open));
+  if (open) $('previous').focus();
+  else $('menu').focus();
+}
+$('menu').onclick = () => menu($('menuActions').hidden);
 $('settings').onclick=()=>panel($('panel').hidden);$('close').onclick=()=>panel(false);
 $('interval').value=String(state.interval);$('interval').onchange=()=>{state.interval=Number($('interval').value);save();schedule()};
 $('startMuted').checked=state.muted;$('startMuted').onchange=()=>{state.muted=$('startMuted').checked;save();$('video').defaultMuted=state.muted;$('video').muted=state.muted;refreshEligibility();schedule()};
@@ -178,7 +204,16 @@ $('addForm').onsubmit=e=>{e.preventDefault();const embed=https($('newEmbed').val
  const s={kind:$('newKind').value,schedule,id:crypto.randomUUID?.()||String(Date.now())+Math.random(),title:$('newTitle').value.trim(),institution:$('newInstitution').value.trim(),collection:$('newCollection').value,embed,original,donation};
  if(!s.title||!s.institution)return;
  state.streams.push(s);save();drawList();$('addForm').reset();$('formMessage').textContent='Camera saved locally. Playback and liveness are not verified.';refreshEligibility();schedule()};
-window.addEventListener('keydown',e=>{if(e.target.closest('input,select,textarea'))return;if(e.key==='ArrowRight')retryNext();if(e.key==='ArrowLeft')previous();if(e.key==='Escape')panel(false)});
+window.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    if (!$('panel').hidden) panel(false);
+    else if (!$('menuActions').hidden) menu(false);
+    return;
+  }
+  if (e.target.closest('input,select,textarea')) return;
+  if (e.key === 'ArrowRight') retryNext();
+  if (e.key === 'ArrowLeft') previous();
+});
 let lastPool = '';
 function refreshEligibility() {
   const pool = eligible();

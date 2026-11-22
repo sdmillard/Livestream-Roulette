@@ -37,8 +37,14 @@ try {
   const buttons = () => [...doc.querySelectorAll('#sources .item button:first-child')];
   check(el('player').hidden, 'Default settings must block generic iframe audio');
   check(buttons().every(button => button.disabled), 'Ineligible cameras must disable manual Play');
+  check(el('menuActions').hidden, 'Playback actions start collapsed');
+  el('menu').click();
+  check(!el('menuActions').hidden, 'Menu reveals playback actions');
   el('settings').click();
   check(!el('panel').hidden, 'Settings opens');
+  el('close').dispatchEvent(new frame.contentWindow.KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+  check(el('panel').hidden && !el('menuActions').hidden, 'Escape returns to the parent menu');
+  el('settings').click();
   el('startMuted').click();
   check(!el('player').hidden, 'Audio opt-in enables generic embeds');
   check(buttons()[2].disabled && buttons()[3].disabled, 'Schedule and YouTube checks apply to Play');
