@@ -15,9 +15,21 @@ Settings stay in localStorage for that browser profile and origin. Video loads f
 
 Check [source permissions and Wallpaper Engine compatibility](docs/VALIDATION.md) before adding a camera. Wallpaper mode (`?wallpaper=1`) only accepts direct video sources. Open **Menu → Settings → Cameras** on the wallpaper to configure its sources. Settings are shared within a browser profile and origin. Wallpaper Engine uses a separate browser runtime.
 
+## Windows controls companion
+
+The companion puts the same cascading menus in a translucent popover on the primary desktop. It positions the gear above the taskbar and shares its settings with Wallpaper Engine over a loopback-only service.
+
+1. Run `python companion_server.py` from the repository root and leave it running.
+2. Run `powershell.exe -NoProfile -STA -File .\windows\Start-Controls.ps1` from a second terminal. This uses Windows PowerShell 5.1 and the installed Edge WebView2 Runtime. On first run it downloads Microsoft's WebView2 SDK from NuGet.
+3. In Wallpaper Engine, select **Open Wallpaper → Open from URL**. Enter `http://127.0.0.1:8768/?wallpaper=1&companion=1` and enable **Use Livestream Mode**.
+4. Return to the desktop and open the gear. Add a publisher-authorized direct source under **Settings → Cameras**. The native control and wallpaper read the shared settings from the local service. The settings file is stored in `%LOCALAPPDATA%/Livestream Roulette/settings.json`.
+
+To diagnose the connection, open `http://127.0.0.1:8768/?controls=1` in a regular browser. It uses the same settings and playback controls. Keep one control surface open while editing the camera list.
+
 ## Run tests
 
 - Run `node --test tests/stream-rules.test.mjs` with Node.js 20+ for URL, schedule, and playback eligibility checks.
+- Run `python -B -m unittest discover -s tests -p test_companion_server.py` for loopback settings persistence, command sequencing, and request validation.
 - With the loopback server running, open `http://127.0.0.1:8765/tests/browser.html` in Chrome or Edge. Use a dedicated profile or private window. The page temporarily replaces this origin's playlist and reports **PASS** or the first failed check. It exercises browser controls with synthetic entries.
 
 See the [product and technical design](docs/DESIGN.md) for the roadmap.
