@@ -1,6 +1,13 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { httpsUrl, isYouTube, liveWindow, inLiveWindow, canPlay } from '../stream-rules.mjs';
+import { httpsUrl, isYouTube, liveWindow, inLiveWindow, canPlay, directPlaybackIsVisible } from '../stream-rules.mjs';
+
+test('direct playback stays active at exactly half visible', () => {
+  assert.equal(directPlaybackIsVisible(0.51), true);
+  assert.equal(directPlaybackIsVisible(0.5), true);
+  assert.equal(directPlaybackIsVisible(0.49), false);
+  assert.equal(directPlaybackIsVisible(null), false);
+});
 
 test('requires HTTPS URLs without credentials', () => {
   for (const value of ['https://user:pass@example.org', 'http://example.org', 'javascript:alert(1)', null]) {

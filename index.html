@@ -129,7 +129,7 @@ fieldset label{margin:9px 0}
 <p class="note">Some official streams substitute prerecorded footage outside live hours. Published live hours help avoid scheduled replays.</p>
 </aside>
 <script type="module">
-import { httpsUrl as https, isYouTube, liveWindow, canPlay } from './stream-rules.mjs';
+import { httpsUrl as https, isYouTube, liveWindow, canPlay, directPlaybackIsVisible } from './stream-rules.mjs';
 import { connectCompanion, reportControlBounds } from './companion.mjs';
 (()=>{
 const KEY='livestream-roulette-v1';
@@ -280,7 +280,7 @@ function playStream(stream, record) {
     index = history.length - 1;
   }
   if (!desktopViewable) {
-    const waiting = 'Waiting for more than half the desktop to be visible';
+    const waiting = 'Waiting for at least half the desktop to be visible';
     playbackStatus = $('lastFrame').width > 0 ? 'Paused · Showing last frame' : 'Paused · ' + waiting;
     $('emptyStatus').textContent = waiting;
     display();
@@ -516,7 +516,7 @@ function publishStatus() {
   });
 }
 function updateDesktopVisibility(fraction) {
-  const viewable = typeof fraction === 'number' && fraction > 0.5;
+  const viewable = directPlaybackIsVisible(fraction);
   if (desktopViewable === viewable) return;
   if (!viewable) rememberFrame();
   desktopViewable = viewable;
@@ -546,7 +546,7 @@ function updateDesktopVisibility(fraction) {
   } else {
     video.pause();
     hlsPlayer.stopLoad();
-    const waiting = 'Waiting for more than half the desktop to be visible';
+    const waiting = 'Waiting for at least half the desktop to be visible';
     playbackStatus = $('lastFrame').width > 0 ? 'Paused · Showing last frame' : 'Paused · ' + waiting;
     $('emptyStatus').textContent = waiting;
   }

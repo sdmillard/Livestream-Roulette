@@ -47,3 +47,6 @@ export function canPlay(stream, settings, wallpaper, now) {
     && (stream.kind === 'video' || (!settings.muted && !wallpaper))
     && inLiveWindow(stream.schedule, now));
 }
+export function directPlaybackIsVisible(fraction) {
+  return Number.isFinite(fraction) && fraction >= 0.5;
+}
