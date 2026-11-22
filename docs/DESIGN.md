@@ -1,6 +1,6 @@
 # Livestream Roulette — Product & Technical Design
 
-Status: Draft v0.1 · November 2026
+Status: Draft v0.2 · November 2026
 
 ## Vision
 A quiet, genuinely live **window into the world** on your desktop. Instead of repeating a rendered animation, Livestream Roulette rotates among permitted, attributed cameras operated by verified institutions. The footage is the product; the UI should disappear.
@@ -59,7 +59,7 @@ Later: independent provider/source status (`unknown`, `live`, `offline`, `record
 
 **Stage D: public distribution** — test Steam Workshop publishing requirements, licensing, content permissions and takedown process. Avoid bundling video.
 
-Player adapters will have an interface like `mount(record)`, `dispose()`, `onEnded()`, `onError()`, `mute()`. Native HTML5 video can expose end/error/stall, but cross-origin iframe players generally cannot be inspected. YouTube's iframe API provides specific ended/error states but not reliable live-versus-recorded proof and must follow YouTube terms. A timeout alone must never be presented as proof the stream ended.
+The prototype supports native video and a browser-only generic iframe. Future player adapters may have an interface like `mount(record)`, `dispose()`, `onEnded()`, `onError()`, `mute()`. Native HTML5 video can expose end/error/stall, but cross-origin iframe players generally cannot be inspected. YouTube's iframe API provides specific ended/error states but not reliable live-versus-recorded proof and must follow YouTube terms. A timeout alone must never be presented as proof the stream ended.
 
 ## Security, privacy, copyright
 - Use HTTPS media URLs; validate URLs and do not execute user-supplied HTML or JS.
@@ -71,13 +71,15 @@ Player adapters will have an interface like `mount(record)`, `dispose()`, `onEnd
 
 ## Acceptance criteria for first browser prototype
 - Opens locally in a normal browser through `python -m http.server 8765`.
-- Can add/edit playable, user-authorized HTTPS embed URLs and save them locally.
+- Can add and remove user-authorized HTTPS player URLs and save them locally. Editing existing entries is pending.
 - Rotates across enabled sources on an interval without immediate repeats (when more than one source).
 - Next, Previous and Stay Here work without navigation away from the page.
 - Preserves settings through refresh; supports clearing entries.
 - Handles iframe load failures conservatively (can't infer whether remote playback itself is offline).
 - Attribution/source/donation links visible on demand.
 - Clearly identifies all compatibility and liveness caveats.
+
+See [validation and candidate evidence](VALIDATION.md) for tested behavior, open compatibility checks, and catalog admission criteria.
 
 ## Milestones
 1. [x] Design and browser prototype scaffolding.

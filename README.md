@@ -1,51 +1,21 @@
 # Livestream Roulette
 
-> **Prototype / pre-alpha.** A living desktop background, not another prerecorded video loop.
+Livestream Roulette rotates among publisher-authorized live cameras. Wildlife is the first collection for source review. The browser prototype starts with an empty playlist.
 
-Livestream Roulette rotates among user-approved embedded live cameras. The long-term goal is a Wallpaper Engine-compatible wallpaper with **Wildlife** as the first verified camera collection and optional **Space**, **Nature**, and other collections.
+## Run locally
 
-## Try the browser prototype
+1. From the repository root, run `python -m http.server 8765 --bind 127.0.0.1` with Python 3.
+2. Open `http://127.0.0.1:8765/` in a modern browser.
+3. In **Settings**, add a camera with its official watch page, an authorized HTTPS media or player URL, and optional daily live hours in the camera's time zone.
+4. Choose a collection and interval. Use **Next**, **Back**, and **Stay here** to control rotation.
 
-1. Clone/download the repository.
-2. From the repository folder, run `python -m http.server 8765` (Python 3).
-3. Open `http://localhost:8765` in a modern browser.
-4. Open **Settings** and add a camera's authorized **HTTPS embed/player URL**, the institution's official viewing URL, and optionally a direct donation link.
-5. Choose enabled collections and rotation interval; use **Next**, **Back**, and **Stay here**.
+Settings stay in localStorage for that browser profile and origin. Video loads from the publisher. For mute by default, use a direct video URL with a codec and transport the browser supports. Generic iframes require disabling **Require muted playback**, since the app cannot control their audio. User-provided iframe entries from the initial prototype are preserved.
 
-Settings and the stream list are saved in your browser's localStorage. No server account or public hosting is needed. The server above only serves local app files; video data loads directly from the third-party provider.
+Check [source permissions and Wallpaper Engine compatibility](docs/VALIDATION.md) before adding a camera. For the quiet layout, append `?wallpaper=1`. It hides the toolbar and only accepts direct video sources. The settings page without the query parameter shares storage within the same browser profile and origin. A separate embedded browser may need its own setup.
 
-**Wallpaper display experiment:** `http://localhost:8765/?wallpaper=1` hides the controls. You need an alternate way to change settings before using that mode. Wallpaper Engine URL livestream mode can be tested against this page, but **compatibility is unverified**.
+## Run tests
 
-## Important limitations
+- Run `node --test tests/stream-rules.test.mjs` with Node.js 20+ for URL, schedule, and playback eligibility checks.
+- With the loopback server running, open `http://127.0.0.1:8765/tests/browser.html` in Chrome or Edge. Use a dedicated profile or private window. The page temporarily replaces this origin's playlist and reports **PASS** or the first failed check. It exercises browser controls with synthetic entries.
 
-- **No playable defaults yet.** The settings panel links to official Monterey Bay Aquarium cameras for discovery. These are not automatically approved for embedding.
-- A generic iframe does **not** provide reliable end-of-stream, buffering, or offline signals. Automatic rotation is timer-based; a stream that goes offline may remain visible until the next switch.
-- The **mute preference is not enforced** for arbitrary embeds. Providers differ; some allow muted playback parameters or an official API. Test provider by provider. Audio is not controlled by the app yet.
-- Some cameras substitute prerecorded footage outside live hours. This prototype does not automatically verify that footage is actually live.
-- YouTube and other providers may forbid background playback or restrict embedded viewing. An official camera is not necessarily an approved wallpaper source.
-- Ordinary Wallpaper Engine web wallpapers use a different embedded browser from its URL livestream mode. Do not assume Workshop compatibility.
-- No built-in clock, weather, source discovery API, live-detection engine, automated health checks, or centralized stream catalog yet.
-- The prototype has **not** undergone end-to-end browser/Wallpaper Engine testing; treat it as a starting implementation.
-
-## Design
-
-Read [docs/DESIGN.md](docs/DESIGN.md) for goals, architecture, proposed source metadata, verification rules, copyright considerations, acceptance criteria and milestones.
-
-## Principles
-
-- Actual real-world cameras, not scenic loops.
-- Verify institutional provenance **and** actual live hours separately.
-- Never bypass a publisher's streaming restrictions.
-- No rehosting or redistribution of video footage.
-- Quiet interface: optional overlays, hidden by default.
-- Donate links go directly to the source institution.
-- No tracking or subscriptions.
-
-## Next steps
-
-1. Verify one publisher-authorized real livestream in a browser and in Wallpaper Engine's **URL Livestream Mode**.
-2. Replace generic iframe assumptions with a tested player adapter for that provider, including reliable playback error events if available.
-3. Add curated verified/default content with clear live/recorded status and time zones.
-4. Test true desktop behavior, performance, audio, pause-on-fullscreen, and Workshop feasibility.
-
-Feedback and stream-source suggestions are welcome, but please include the official source page and the institution's embedding terms.
+See the [product and technical design](docs/DESIGN.md) for the roadmap.
