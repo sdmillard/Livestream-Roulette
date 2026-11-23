@@ -251,12 +251,6 @@ public sealed class ControlPopover : Form
     private void SetInteractiveRegion(object sender, CoreWebView2WebMessageReceivedEventArgs args)
     {
         if (args.Source != controlsUrl.AbsoluteUri) return;
-        if (args.WebMessageAsJson == "\"exit-controls\"")
-        {
-            CloseControls();
-            Close();
-            return;
-        }
         if (args.WebMessageAsJson == "\"close-controls\"")
         {
             CloseControls();

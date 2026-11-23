@@ -70,7 +70,7 @@ fieldset label{margin:9px 0}
 <div id="menuActions" class="menu-actions" hidden>
 <button id="playback" aria-expanded="false" aria-controls="playbackPanel">‹ Playback</button>
 <button id="settings" aria-expanded="false" aria-controls="panel">‹ Settings</button>
-<button id="exitControls" hidden>Exit</button>
+<button id="dismissControls" hidden>Close menu</button>
 </div>
 <button id="menu" aria-label="Menu" aria-expanded="false" aria-controls="menuActions">⚙<span class="menu-label"> Menu</span></button>
 </nav>
@@ -595,8 +595,11 @@ if (controls || controlledWallpaper) {
     $('newKind').querySelector('[value="iframe"]').disabled = true;
     reportControlBounds();
     if (trayControls) {
-      $('exitControls').hidden = false;
-      $('exitControls').onclick = () => window.chrome.webview.postMessage('exit-controls');
+      $('dismissControls').hidden = false;
+      $('dismissControls').onclick = () => {
+        menu(false, false);
+        window.chrome.webview.postMessage('close-controls');
+      };
     }
     window.chrome?.webview?.addEventListener('message', event => {
       if (event.data === 'expand' && trayControls) menu(true);
