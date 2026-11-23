@@ -20,6 +20,8 @@ Add an entry under **Recent work** when a change lands or a test changes what we
 
 ### November 23, 2026
 
+- **Update on startup.** When the launcher starts the server, it fast-forwards a clean `main` checkout with `git pull --ff-only`, a 30-second timeout and no credential prompt. It skips other branches and uncommitted changes and logs the result to `Logs/<port>/update.log`. Not yet run on Windows.
+
 - **Mid-stream stall recovery test.** `tests/stall-recovery.mjs` serves a direct WebM that stops answering range requests after about ten seconds. In headless Chromium the app detected the stall after 15 seconds, reconnected once, saw the retry stall, and switched to the healthy camera about 47 seconds in.
 
 - **Camera editing, hourly live windows, start at sign-in.** Saved cameras have **Edit**, which keeps the camera ID and its playlists. Editing the playing camera keeps it on screen, or restarts it if its URL or player changed. Live hours can repeat every hour using the minutes only, for ONC-style cameras, and backups keep that setting. Fixed the add-camera handler shadowing `schedule()`, which threw after each save and skipped rescheduling. Node tests (13) and the headless Chromium browser smoke test passed. Windows verification of the sign-in toggle is open work.
