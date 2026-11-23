@@ -41,9 +41,10 @@ $env:Path = "$native;$env:Path"
 [Reflection.Assembly]::LoadFrom($core) | Out-Null
 [Reflection.Assembly]::LoadFrom($forms) | Out-Null
 if (-not ('ControlPopover' -as [type])) {
-    $sources = @('ControlPopover.cs', 'DesktopVisibility.cs') | ForEach-Object { Join-Path $PSScriptRoot $_ }
+    $sources = @('ControlPopover.cs', 'DesktopVisibility.cs', 'StartupRegistration.cs') | ForEach-Object { Join-Path $PSScriptRoot $_ }
     Add-Type -Path $sources -ReferencedAssemblies @(
         'System.dll', 'System.Drawing.dll', 'System.Windows.Forms.dll', 'System.Web.Extensions.dll', $core, $forms
     )
 }
-[ControlPopover]::Open("$origin/?controls=1&tray=1", (Join-Path $data 'ControlWebView'))
+[ControlPopover]::Open("$origin/?controls=1&tray=1", (Join-Path $data 'ControlWebView'),
+    (Join-Path $PSScriptRoot 'Start-LivestreamRoulette.ps1'))

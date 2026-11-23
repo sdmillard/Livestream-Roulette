@@ -4,19 +4,23 @@ Add an entry under **Recent work** when a change lands or a test changes what we
 
 ## Current state
 
-- Work continues on `feat/design-and-browser-prototype` in [draft PR #1](https://github.com/sdmillard/Livestream-Roulette/pull/1). Keep changes reviewable and leave the PR unmerged until Spencer approves.
+- `feat/design-and-browser-prototype` merged to `main` in PR #2. New work goes on feature branches with a PR. Keep changes reviewable and leave PRs unmerged until Spencer approves.
 - The working MVP is a Windows wallpaper with a separate, translucent tray menu. Left-click opens the cascading controls. **Close menu** dismisses them. Right-click **Exit Livestream Roulette** stops the tray and local service. The launcher is manual.
 - Start with [README.md](../README.md) for launch and test commands. The companion wallpaper URL is `http://127.0.0.1:8768/?wallpaper=1&companion=1`. The tray and wallpaper have separate browser instances and can need separate reloads after a change. Camera and playlist settings live in `%LOCALAPPDATA%/Livestream Roulette/settings.json` on the test PC.
 - Direct playback is allowed at exactly 50% measured desktop visibility. Below that, it pauses and can show the last frame. The opt-in official YouTube player requires more than 50% measured player visibility and a closed popover. Keep audio muted by default and desktop icons usable.
 
 ## Open work
 
-1. **Startup at sign-in.** This was discussed as the next optional convenience feature after the quick playlist switcher. Windows startup is currently manual.
+1. **Verify start at sign-in on Windows.** The tray's **Start at sign-in** item writes an HKCU Run entry. The registry logic ran under Mono, and `ControlPopover.cs` was only parse-checked off Windows. Confirm the tray compiles, the check mark follows the registry, and a sign-out/sign-in starts the server and tray.
 2. **Finish playback recovery validation.** Test a feed that stalls after it has started, Windows sleep and wake, and audible mute behavior. Startup hangs and coverage-driven pause and resume have been tested in Wallpaper Engine. See [validation results](VALIDATION.md).
 3. **Verify native library backup dialogs.** The Edge file import and backup merge tests passed. The updated tray initialized, and a complete Save/Open round trip through the Windows dialogs remains unverified.
 4. **Find a second direct wildlife feed for rotation with YouTube off.** The AGH kestrel cam played in a private local test. Its live hours and wallpaper permission are unresolved. Ocean Networks Canada published working HLS transport for scheduled underwater cams. Camera-specific permission and on-window playback still need confirmation. See [feed research](FEED-RESEARCH.md).
 
 ## Recent work
+
+### November 23, 2026
+
+- **Camera editing, hourly live windows, start at sign-in.** Saved cameras have **Edit**, which keeps the camera ID and its playlists. Editing the playing camera keeps it on screen, or restarts it if its URL or player changed. Live hours can repeat every hour using the minutes only, for ONC-style cameras, and backups keep that setting. Fixed the add-camera handler shadowing `schedule()`, which threw after each save and skipped rescheduling. Node tests (13) and the headless Chromium browser smoke test passed. Windows verification of the sign-in toggle is open work.
 
 ### November 22, 2026
 
