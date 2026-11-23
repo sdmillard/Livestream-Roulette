@@ -115,6 +115,13 @@ try {
   check(bounds('playlistSettings').right < bounds('panel').left
     && bounds('panel').right < bounds('menuActions').left, 'Tray menus cascade to the left without overlap');
   check(bounds('playlistSettings').bottom === bounds('menuActions').bottom, 'Tray panels share a taskbar anchor');
+  check(bounds('newPlaylist').top - bounds('activePlaylist').bottom >= 8, 'Playlist selector and New playlist have clearance');
+  for (const id of ['activePlaylist', 'newPlaylist', 'settings', 'playlistsCategory', 'playlistName']) {
+    trayEl(id).focus();
+    const style = tray.contentWindow.getComputedStyle(trayEl(id));
+    check(style.outlineOffset === '-3px' && parseFloat(style.outlineWidth) <= 3,
+      id + ' focus indicator stays inside the control');
+  }
   trayEl('camerasCategory').click();
   tray.style.cssText = 'width:360px;height:400px';
   check(bounds('cameraSettings').bottom < bounds('panel').top

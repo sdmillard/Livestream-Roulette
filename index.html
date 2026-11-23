@@ -40,6 +40,9 @@ aside h2{margin:0 0 5px}aside p,small{color:#bac9ce;line-height:1.5}
 label{display:block;margin:14px 0 5px}input,select{width:100%;padding:10px;background:#0e2a39;color:#fff;border:1px solid #4b6571;border-radius:8px}
 input[type=checkbox]{width:auto;margin-right:8px}
 .row{display:flex;gap:8px;align-items:center}.row>*{flex:1}.row button{flex:0 0 auto}
+#controlCascade :is(button,input,select){outline-offset:-3px}
+.panel-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+.panel-actions button{max-width:100%;overflow-wrap:anywhere}
 fieldset{border:1px solid #42606b;border-radius:10px;margin-top:15px}
 fieldset label{margin:9px 0}
 .item{border-top:1px solid #304651;padding:12px 0}
@@ -119,12 +122,14 @@ fieldset label{margin:9px 0}
 <aside id="playlistSettings" class="submenu settings-detail" hidden aria-labelledby="playlistHeading">
 <h2 id="playlistHeading">Playlists</h2>
 <label for="activePlaylist">Play from</label><select id="activePlaylist"></select>
-<button id="newPlaylist" type="button">New playlist</button>
+<div class="panel-actions"><button id="newPlaylist" type="button">New playlist</button></div>
 <form id="playlistForm" hidden>
 <label for="playlistName">Playlist name</label><input id="playlistName" maxlength="80" required>
 <fieldset id="playlistCameras"><legend>Cameras in playlist</legend></fieldset>
+<div class="panel-actions">
 <button type="submit">Save playlist</button>
 <button type="button" id="deletePlaylist">Delete playlist</button>
+</div>
 </form>
 </aside>
 <aside id="rotationSettings" class="submenu settings-detail" hidden aria-labelledby="rotationHeading">
@@ -163,7 +168,8 @@ fieldset label{margin:9px 0}
 <label for="newOriginal">Official viewing page</label><input id="newOriginal" type="url" required placeholder="https://official.example/camera">
 <label for="newDonation">Official donation page (optional)</label><input id="newDonation" type="url" placeholder="https://official.example/donate">
 <label><input id="permission" type="checkbox" required> The publisher permits this source in my intended playback mode.</label>
-<button type="submit">Add camera</button><p id="formMessage" class="note" role="status"></p>
+<div class="panel-actions"><button type="submit">Add camera</button></div>
+<p id="formMessage" class="note" role="status"></p>
 </form>
 <div id="sources" aria-live="polite"></div>
 <h3>Official camera discovery</h3>
