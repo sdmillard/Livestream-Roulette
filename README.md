@@ -54,3 +54,4 @@ The separate Barn Owl Live trial remains at `http://127.0.0.1:8768/youtube-trial
 - Run `python -m http.server 8765 --bind 127.0.0.1` from the repository root and open `http://127.0.0.1:8765/tests/browser.html` in Chrome or Edge. Use a dedicated profile or private window. The page temporarily replaces this origin's settings and reports **PASS** or the first failed check. It covers browser controls, playlist persistence, automatic rotation, and the recovery screen with synthetic entries.
 
 See the [product and technical design](docs/DESIGN.md) for the roadmap.
+See the [running work log](docs/HANDOFF.md) for handoffs, verification status, and open work.
