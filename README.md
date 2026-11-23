@@ -7,7 +7,7 @@ Livestream Roulette rotates among publisher-authorized live cameras. Wildlife is
 1. From the repository root, run `python -m http.server 8765 --bind 127.0.0.1` with Python 3.
 2. Open `http://127.0.0.1:8765/` in a modern browser.
 3. Open **Menu → Settings → Cameras** in the lower-right corner. Add a camera with its official watch page, an authorized HTTPS media or player URL, and optional daily live hours in the camera's time zone.
-4. Choose collections in **Cameras** and an interval in **Rotation**. Use **Menu → Playback** for **Next**, **Back**, and **Stay here**.
+4. Choose collections in **Cameras** and an interval in **Rotation**. Choose **Custom** for an interval of 1 to 7,200 seconds. Short intervals give a video at least 15 seconds to start before skipping it. Use **Menu → Playback** for **Next**, **Back**, and **Stay here**.
 
 Open **Playback → Camera info** for source links and playback status. The on-stream info overlay is optional under **Settings → Display**.
 

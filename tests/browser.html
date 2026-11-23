@@ -98,6 +98,32 @@ try {
   wallpaperEl('camerasCategory').click();
   check(wallpaperEl('cameraSettings').getBoundingClientRect().width > 0, 'Wallpaper mode exposes camera settings');
   wallpaper.remove();
+
+  localStorage.setItem(key, JSON.stringify({
+    muted: false, interval: 'custom', customIntervalSeconds: 1,
+    streams: [
+      stream('one', { embed: 'https://127.0.0.1:1/one' }),
+      stream('two', { embed: 'https://127.0.0.1:1/two' })
+    ]
+  }));
+  const timed = await openApp();
+  const timedPlayer = timed.contentDocument.getElementById('player');
+  check(timed.contentDocument.getElementById('customIntervalSeconds').value === '1', 'Custom interval is restored');
+  const initialSource = timedPlayer.getAttribute('src');
+  await new Promise((resolve, reject) => {
+    const timeout = setTimeout(() => {
+      observer.disconnect();
+      reject(new Error('The one-second timer did not advance'));
+    }, 2500);
+    const observer = new MutationObserver(() => {
+      if (!timedPlayer.getAttribute('src') || timedPlayer.getAttribute('src') === initialSource) return;
+      clearTimeout(timeout);
+      observer.disconnect();
+      resolve();
+    });
+    observer.observe(timedPlayer, { attributes: true, attributeFilter: ['src'] });
+  });
+  timed.remove();
   result.textContent = 'PASS';
 } catch (error) {
   result.textContent = 'FAIL: ' + error.message;

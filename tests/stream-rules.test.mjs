@@ -1,6 +1,16 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { httpsUrl, isYouTube, youtubeVideoId, liveWindow, inLiveWindow, canPlay, directPlaybackIsVisible } from '../stream-rules.mjs';
+import { httpsUrl, isYouTube, youtubeVideoId, liveWindow, inLiveWindow, canPlay, directPlaybackIsVisible, validCustomInterval, rotationDelayMs } from '../stream-rules.mjs';
+
+test('custom rotation accepts whole seconds and preserves minute presets', () => {
+  assert.equal(rotationDelayMs(30), 1800000);
+  assert.equal(rotationDelayMs('custom', 1), 1000);
+  assert.equal(rotationDelayMs('custom', 7200), 7200000);
+  for (const value of [0, -1, 1.5, 7201, '1', undefined]) {
+    assert.equal(validCustomInterval(value), false);
+    assert.equal(rotationDelayMs('custom', value), 1800000);
+  }
+});
 
 test('YouTube playlist entries are opt-in and use official video IDs', () => {
   const id = 'AorGWrn-vx8';

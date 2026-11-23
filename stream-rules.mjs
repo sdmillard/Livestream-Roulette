@@ -65,3 +65,12 @@ export function canPlay(stream, settings, wallpaper, now) {
 export function directPlaybackIsVisible(fraction) {
   return Number.isFinite(fraction) && fraction >= 0.5;
 }
+
+export function validCustomInterval(seconds) {
+  return Number.isInteger(seconds) && seconds >= 1 && seconds <= 7200;
+}
+
+export function rotationDelayMs(interval, customSeconds) {
+  if (interval === 'custom' && validCustomInterval(customSeconds)) return customSeconds * 1000;
+  return ([15, 30, 60, 120].includes(interval) ? interval : 30) * 60000;
+}

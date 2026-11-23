@@ -102,7 +102,11 @@ fieldset label{margin:9px 0}
 </section>
 <aside id="rotationSettings" class="submenu settings-detail" hidden aria-labelledby="rotationHeading">
 <h2 id="rotationHeading">Rotation</h2>
-<label for="interval">Rotate every</label><select id="interval"><option value="15">15 minutes</option><option value="30">30 minutes</option><option value="60">60 minutes</option><option value="120">120 minutes</option></select>
+<label for="interval">Rotate every</label><select id="interval"><option value="15">15 minutes</option><option value="30">30 minutes</option><option value="60">60 minutes</option><option value="120">120 minutes</option><option value="custom">Custom</option></select>
+<div id="customRotation" hidden>
+<label for="customIntervalSeconds">Seconds per camera</label><input id="customIntervalSeconds" type="number" min="1" max="7200" step="1" inputmode="numeric" required>
+<p id="rotationMessage" class="note" role="status"></p>
+</div>
 </aside>
 <aside id="displaySettings" class="submenu settings-detail" hidden aria-labelledby="displayHeading">
 <h2 id="displayHeading">Display</h2>
@@ -142,18 +146,19 @@ fieldset label{margin:9px 0}
 <p class="note">Some official streams substitute prerecorded footage outside live hours. Published live hours help avoid scheduled replays.</p>
 </aside>
 <script type="module">
-import { httpsUrl as https, isYouTube, youtubeVideoId, liveWindow, canPlay, directPlaybackIsVisible } from './stream-rules.mjs';
+import { httpsUrl as https, isYouTube, youtubeVideoId, liveWindow, canPlay, directPlaybackIsVisible, validCustomInterval, rotationDelayMs } from './stream-rules.mjs';
 import { connectCompanion, reportControlBounds } from './companion.mjs';
 import { createYouTubePlayer } from './youtube-player.mjs';
 (()=>{
 const KEY='livestream-roulette-v1';
-const defaults={interval:30,muted:true,showInfo:false,allowYouTube:false,enabled:['Wildlife','Space','Nature','Other'],streams:[]};
+const defaults={interval:30,customIntervalSeconds:30,muted:true,showInfo:false,allowYouTube:false,enabled:['Wildlife','Space','Nature','Other'],streams:[]};
 const $=id=>document.getElementById(id);
 function readSettings(data) {
   const settings = { ...defaults, ...data };
   if (!Array.isArray(settings.streams)) settings.streams = [];
   if (!Array.isArray(settings.enabled)) settings.enabled = [...defaults.enabled];
-  if (![15, 30, 60, 120].includes(settings.interval)) settings.interval = defaults.interval;
+  if (![15, 30, 60, 120, 'custom'].includes(settings.interval)) settings.interval = defaults.interval;
+  if (!validCustomInterval(settings.customIntervalSeconds)) settings.customIntervalSeconds = defaults.customIntervalSeconds;
   return settings;
 }
 const query = new URLSearchParams(location.search);
@@ -179,6 +184,7 @@ let hlsLibrary;
 let bufferingTimer;
 let companion;
 let desktopViewable = !controlledWallpaper;
+let videoHasPlayed = false;
 let youtubeSample;
 let youtubeMounted = false;
 const barnOwlPhoto = 'https://barnowl.live/wp-content/uploads/2026/09/Free-Wildlife-Image-Barn-Owl-088.jpg';
@@ -271,11 +277,12 @@ function rememberFrame() {
 }
 function schedule() {
   clearTimeout(timer);
-  const playing = current?.kind === 'youtube'
-    ? youtubeMounted && playbackStatus.startsWith('Playing') : desktopViewable;
-  if (!controls && playing && !document.hidden && !hold && current && eligible().length > 1) {
-    timer = setTimeout(pickNext, state.interval * 60000);
-  }
+  if (controls || !current || document.hidden || hold || eligible().length < 2) return;
+  if (current.kind === 'youtube' ? !youtubeMounted : !desktopViewable) return;
+  const delay = rotationDelayMs(state.interval, state.customIntervalSeconds);
+  const waitingForPlayback = current.kind === 'youtube'
+    ? !playbackStatus.startsWith('Playing') : current.kind === 'video' && !videoHasPlayed;
+  timer = setTimeout(pickNext, waitingForPlayback ? Math.max(delay, 15000) : delay);
 }
 
 function loadHls() {
@@ -305,6 +312,7 @@ function playStream(stream, record) {
   const video = $('video');
   const player = $('player');
   const generation = ++mediaGeneration;
+  videoHasPlayed = false;
   youtube?.update(null, youtubeSample);
   clearTimeout(bufferingTimer);
   video.onended = video.onerror = video.onplaying = video.onwaiting = null;
@@ -371,6 +379,8 @@ function playStream(stream, record) {
     video.onplaying = () => {
       clearTimeout(bufferingTimer);
       if (!desktopViewable) return;
+      const started = !videoHasPlayed;
+      videoHasPlayed = true;
       playbackStatus = 'Playing · Live status unverified';
       const still = $('lastFrame');
       if (still.width > 0 && video.requestVideoFrameCallback) {
@@ -383,6 +393,7 @@ function playStream(stream, record) {
         still.width = 0;
       }
       display();
+      if (started) schedule();
     };
     const isHls = new URL(stream.embed).pathname.toLowerCase().endsWith('.m3u8');
     if (isHls && !video.canPlayType('application/vnd.apple.mpegurl')) {
@@ -490,7 +501,32 @@ for (const id of Object.keys(branches)) {
 for (const id of Object.keys(categories)) {
   $(id).onclick = () => openCategory(activeCategory === id ? null : id);
 }
-$('interval').value=String(state.interval);$('interval').onchange=()=>{state.interval=Number($('interval').value);save();schedule()};
+function drawRotationSettings() {
+  $('interval').value = String(state.interval);
+  $('customIntervalSeconds').value = String(state.customIntervalSeconds);
+  $('customRotation').hidden = state.interval !== 'custom';
+}
+drawRotationSettings();
+$('interval').onchange = () => {
+  const value = $('interval').value;
+  state.interval = value === 'custom' ? value : Number(value);
+  $('rotationMessage').textContent = '';
+  drawRotationSettings();
+  save();
+  schedule();
+};
+$('customIntervalSeconds').onchange = () => {
+  const seconds = $('customIntervalSeconds').valueAsNumber;
+  if (!validCustomInterval(seconds)) {
+    $('rotationMessage').textContent = 'Enter a whole number from 1 to 7,200.';
+    drawRotationSettings();
+    return;
+  }
+  state.customIntervalSeconds = seconds;
+  $('rotationMessage').textContent = '';
+  save();
+  schedule();
+};
 $('startMuted').checked=state.muted;$('startMuted').onchange=()=>{state.muted=$('startMuted').checked;save();$('video').defaultMuted=state.muted;$('video').muted=state.muted;refreshEligibility();schedule()};
 $('allowYouTube').checked = state.allowYouTube === true;
 $('allowYouTube').onchange = () => {
@@ -573,7 +609,7 @@ function applySharedSettings(data) {
     && stream.embed === current.embed && stream.kind === current.kind);
   if (replacement) current = replacement;
   state = settings;
-  $('interval').value = String(state.interval);
+  drawRotationSettings();
   $('startMuted').checked = $('video').defaultMuted = $('video').muted = state.muted;
   $('allowYouTube').checked = state.allowYouTube === true;
   $('showInfo').checked = state.showInfo;
@@ -636,6 +672,7 @@ function updateDesktopVisibility(fraction, sample) {
     video.play().catch(() => {});
   } else {
     video.pause();
+    videoHasPlayed = false;
     hlsPlayer.stopLoad();
     const waiting = 'Waiting for at least half the desktop to be visible';
     playbackStatus = $('lastFrame').width > 0 ? 'Paused · Showing last frame' : 'Paused · ' + waiting;
