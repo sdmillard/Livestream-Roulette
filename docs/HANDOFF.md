@@ -11,7 +11,7 @@ Add an entry under **Recent work** when a change lands or a test changes what we
 
 ## Open work
 
-1. **Verify start at sign-in on Windows.** The tray's **Start at sign-in** item writes an HKCU Run entry. The registry logic ran under Mono, and `ControlPopover.cs` was only parse-checked off Windows. Confirm the tray compiles, the check mark follows the registry, and a sign-out/sign-in starts the server and tray.
+1. **Verify start at sign-in on Windows.** The tray's **Start at sign-in** item writes an HKCU Run entry. On November 22, 2026 the tray compiled on Windows and the item could be checked. Confirm that a sign-out/sign-in starts the server and tray.
 2. **Finish playback recovery validation.** Test a feed that stalls after it has started, Windows sleep and wake, and audible mute behavior. Startup hangs and coverage-driven pause and resume have been tested in Wallpaper Engine. See [validation results](VALIDATION.md).
 3. **Verify native library backup dialogs.** The Edge file import and backup merge tests passed. The updated tray initialized, and a complete Save/Open round trip through the Windows dialogs remains unverified.
 4. **Find a second direct wildlife feed for rotation with YouTube off.** The AGH kestrel cam played in a private local test. Its live hours and wallpaper permission are unresolved. Ocean Networks Canada published working HLS transport for scheduled underwater cams. Camera-specific permission and on-window playback still need confirmation. See [feed research](FEED-RESEARCH.md).
