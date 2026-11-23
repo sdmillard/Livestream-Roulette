@@ -28,6 +28,7 @@ public sealed class ControlPopover : Form
     private bool reportingVisibility;
     private bool exiting;
     private bool fileDialogOpen;
+    private DateTime lastServerContact = DateTime.UtcNow;
 
     protected override bool ShowWithoutActivation { get { return true; } }
 
@@ -141,10 +142,19 @@ public sealed class ControlPopover : Form
                     client.Headers["Origin"] = controlsUrl.GetLeftPart(UriPartial.Authority);
                     await client.UploadStringTaskAsync(new Uri(controlsUrl, "/api/visibility"), "POST", json.Serialize(sample));
                 }
+                lastServerContact = DateTime.UtcNow;
             }
-            catch (WebException)
+            catch (WebException error)
             {
-                // The wallpaper treats missing measurements as covered.
+                // The wallpaper treats missing measurements as covered. Once the local server has been
+                // gone for a while, close the tray too so a relaunch starts from a clean state.
+                if (error.Status == WebExceptionStatus.ConnectFailure && !exiting && !fileDialogOpen
+                    && DateTime.UtcNow - lastServerContact > TimeSpan.FromSeconds(10))
+                {
+                    exiting = true;
+                    Console.WriteLine("The local server stopped, so the tray is closing.");
+                    Close();
+                }
             }
             finally
             {

@@ -20,6 +20,8 @@ Add an entry under **Recent work** when a change lands or a test changes what we
 
 ### November 23, 2026
 
+- **Tray closes when its server stops.** `/api/shutdown` used to stop only the Python server, and the tray had to be ended by hand before a clean relaunch. The tray now closes after 10 seconds without reaching its server. Not yet run on Windows.
+
 - **Update on startup.** When the launcher starts the server, it fast-forwards a clean `main` checkout with `git pull --ff-only`, a 30-second timeout and no credential prompt. It skips other branches and uncommitted changes and logs the result to `Logs/<port>/update.log`. Not yet run on Windows.
 
 - **Mid-stream stall recovery test.** `tests/stall-recovery.mjs` serves a direct WebM that stops answering range requests after about ten seconds. In headless Chromium the app detected the stall after 15 seconds, reconnected once, saw the retry stall, and switched to the healthy camera about 47 seconds in.
