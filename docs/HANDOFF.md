@@ -12,7 +12,7 @@ Add an entry under **Recent work** when a change lands or a test changes what we
 ## Open work
 
 1. **Verify start at sign-in on Windows.** The tray's **Start at sign-in** item writes an HKCU Run entry. On November 22, 2026 the tray compiled on Windows, the item could be checked, and a restart brought back the tray and wallpaper. Wallpaper Engine started before the local server and briefly showed Edge's "127.0.0.1 refused to connect" page. It then loaded the playlist (Color Bars) without help. A possible follow-up is to have the launcher ask Wallpaper Engine to reload once the server is ready, if its command line supports that for URL wallpapers.
-2. **Finish playback recovery validation.** A mid-stream stall is now covered by `tests/stall-recovery.mjs` in headless Chromium. Still test Windows sleep and wake, a network drop in Wallpaper Engine, and audible mute behavior. Startup hangs and coverage-driven pause and resume have been tested in Wallpaper Engine. See [validation results](VALIDATION.md).
+2. **Playback recovery follow-ups.** Stall, Wi-Fi drop, sleep/wake and muted playback all recovered in Wallpaper Engine on November 22, 2026 (see Recent work). Optional: on wake the app switched cameras instead of reconnecting, probably because the network wasn't up yet. A short post-wake grace period would keep the same camera. Unmuted audio is unconfirmed. Startup hangs and coverage-driven pause and resume have been tested in Wallpaper Engine. See [validation results](VALIDATION.md).
 3. **Verify native library backup dialogs.** The Edge file import and backup merge tests passed. The updated tray initialized, and a complete Save/Open round trip through the Windows dialogs remains unverified.
 4. **Find a second direct wildlife feed for rotation with YouTube off.** The AGH kestrel cam played in a private local test. Its live hours and wallpaper permission are unresolved. Ocean Networks Canada published working HLS transport for scheduled underwater cams. Camera-specific permission and on-window playback still need confirmation. See [feed research](FEED-RESEARCH.md).
 
@@ -20,9 +20,11 @@ Add an entry under **Recent work** when a change lands or a test changes what we
 
 ### November 23, 2026
 
-- **Tray closes when its server stops.** `/api/shutdown` used to stop only the Python server, and the tray had to be ended by hand before a clean relaunch. The tray now closes after 10 seconds without reaching its server. Not yet run on Windows.
+- **Wallpaper Engine recovery run** (Eastern time, Nov 22, 5 s poll of `/api/session`). Wi-Fi off at about 22:59:43: AGH Kestrel buffered, played for about 10 s at 23:00:13, stalled again, and switched to the Unified Broadcast Demo at 23:00:38. No sound while muted. Sleep from 23:03:35 to 23:04:56 (Modern Standby): the app switched to Kestrel at 23:04:59 and was playing at 23:05:14, about 18 s after wake with no reload.
 
-- **Update on startup.** When the launcher starts the server, it fast-forwards a clean `main` checkout with `git pull --ff-only`, a 30-second timeout and no credential prompt. It skips other branches and uncommitted changes and logs the result to `Logs/<port>/update.log`. Not yet run on Windows.
+- **Tray closes when its server stops.** `/api/shutdown` used to stop only the Python server, and the tray had to be ended by hand before a clean relaunch. The tray now closes after 10 seconds without reaching its server. On Windows it closed 9.3 seconds after `/api/shutdown`.
+
+- **Update on startup.** When the launcher starts the server, it fast-forwards a clean `main` checkout with `git pull --ff-only`, a 30-second timeout and no credential prompt. It skips other branches and uncommitted changes and logs the result to `Logs/<port>/update.log`. The first Windows run failed safely on a PC with two `git.exe` on PATH, because `Get-Command` returned both. It now uses the first match. The fix hasn't been rerun, and a run on `main` is still unverified.
 
 - **Mid-stream stall recovery test.** `tests/stall-recovery.mjs` serves a direct WebM that stops answering range requests after about ten seconds. In headless Chromium the app detected the stall after 15 seconds, reconnected once, saw the retry stall, and switched to the healthy camera about 47 seconds in.
 

@@ -53,7 +53,7 @@ function Invoke-Git {
 # Fast-forwards a clean main checkout before the server starts. Feature branches and local
 # edits are left alone, and any failure only gets logged.
 function Update-FromMain {
-    $git = Get-Command git.exe -CommandType Application -ErrorAction SilentlyContinue
+    $git = Get-Command git.exe -CommandType Application -ErrorAction SilentlyContinue | Select-Object -First 1
     if (!$git) { return 'Skipped update: git.exe is not on PATH.' }
     $branch = Invoke-Git $git.Source 'rev-parse --abbrev-ref HEAD' 10
     if (!$branch.Ok) { return "Skipped update: $($branch.Text)" }
@@ -79,7 +79,7 @@ try {
     $session = Get-CompanionSession
     if (!$session) {
         try { $update = Update-FromMain } catch { $update = "Update failed, starting the current version: $_" }
-        Add-Content -LiteralPath (Join-Path $logs 'update.log') -Value ('{0:u} {1}' -f [DateTime]::Now, $update)
+        Add-Content -LiteralPath (Join-Path $logs 'update.log') -Value ('{0:yyyy-MM-dd HH:mm:ss zzz} {1}' -f [DateTimeOffset]::Now, $update)
         $python = Get-Command python.exe -CommandType Application -ErrorAction SilentlyContinue
         if (!$python) { throw 'Install Python and make python.exe available on PATH.' }
         $server = Start-Process -FilePath $python.Source -ArgumentList @('companion_server.py', '--port', $Port) `
