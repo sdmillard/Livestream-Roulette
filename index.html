@@ -131,6 +131,12 @@ fieldset label{margin:9px 0}
 <button type="button" id="deletePlaylist">Delete playlist</button>
 </div>
 </form>
+<div class="panel-actions">
+<button id="exportLibrary" type="button">Export library</button>
+<button id="importLibrary" type="button">Import library</button>
+</div>
+<input id="libraryFile" type="file" accept=".json,application/json" hidden>
+<p id="libraryMessage" class="note" role="status"></p>
 </aside>
 <aside id="rotationSettings" class="submenu settings-detail" hidden aria-labelledby="rotationHeading">
 <h2 id="rotationHeading">Rotation</h2>
@@ -183,6 +189,7 @@ fieldset label{margin:9px 0}
 import { httpsUrl as https, isYouTube, youtubeVideoId, liveWindow, canPlay, directPlaybackIsVisible, validCustomInterval, rotationDelayMs } from './stream-rules.mjs';
 import { connectCompanion, reportControlBounds } from './companion.mjs';
 import { createYouTubePlayer } from './youtube-player.mjs';
+import { backupLimit, exportLibrary, importLibrary } from './library-backup.mjs';
 (()=>{
 const KEY='livestream-roulette-v1';
 const defaults={interval:30,customIntervalSeconds:30,muted:true,showInfo:false,allowYouTube:false,enabled:['Wildlife','Space','Nature','Other'],streams:[],playlists:[],activePlaylist:null};
@@ -254,10 +261,13 @@ const youtube = controlledWallpaper ? createYouTubePlayer({
   }
 }) : null;
 function save() {
-  if (controls) companion.save(state);
-  else {
-    try { localStorage.setItem(KEY, JSON.stringify(state)); }
-    catch { $('formMessage').textContent = 'Storage unavailable: changes may be temporary.'; }
+  if (controls) return companion.save(state);
+  try {
+    localStorage.setItem(KEY, JSON.stringify(state));
+    return true;
+  } catch {
+    $('formMessage').textContent = 'Storage unavailable: changes may be temporary.';
+    return false;
   }
 }
 function eligible() {
@@ -655,6 +665,60 @@ $('deletePlaylist').onclick = () => {
 };
 drawPlaylists();
 
+const libraryMessage = $('libraryMessage');
+async function restoreLibrary(text) {
+  try {
+    const merged = importLibrary(text, state);
+    const cameras = merged.streams.length - state.streams.length;
+    const playlists = merged.playlists.length - state.playlists.length;
+    state = merged;
+    const saved = save();
+    drawPlaylists();
+    drawList();
+    refreshEligibility();
+    libraryMessage.textContent = await saved
+      ? `Added ${cameras} camera${cameras === 1 ? '' : 's'} and ${playlists} playlist${playlists === 1 ? '' : 's'}.`
+      : 'Could not save the imported library.';
+  } catch (error) {
+    libraryMessage.textContent = error instanceof SyntaxError ? 'This file is not valid JSON.' : error.message;
+  }
+}
+$('exportLibrary').onclick = () => {
+  libraryMessage.textContent = '';
+  try {
+    const text = exportLibrary(state);
+    if (trayControls) {
+      window.chrome.webview.postMessage('export-library:' + text);
+      return;
+    }
+    const url = URL.createObjectURL(new Blob([text], { type: 'application/json' }));
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'livestream-roulette-library.json';
+    link.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  } catch (error) {
+    libraryMessage.textContent = error.message;
+  }
+};
+$('importLibrary').onclick = () => {
+  libraryMessage.textContent = '';
+  if (trayControls) window.chrome.webview.postMessage('import-library');
+  else $('libraryFile').click();
+};
+$('libraryFile').onchange = async event => {
+  const input = event.target;
+  const file = input.files[0];
+  input.value = '';
+  if (!file) return;
+  if (file.size > backupLimit) {
+    libraryMessage.textContent = 'This library backup is too large.';
+    return;
+  }
+  try { restoreLibrary(await file.text()); }
+  catch { libraryMessage.textContent = 'Could not read this backup.'; }
+};
+
 function drawRotationSettings() {
   $('interval').value = String(state.interval);
   $('customIntervalSeconds').value = String(state.customIntervalSeconds);
@@ -886,6 +950,8 @@ if (controls || controlledWallpaper) {
       };
     }
     window.chrome?.webview?.addEventListener('message', event => {
+      if (event.data?.type === 'library-import') restoreLibrary(event.data.text);
+      if (event.data?.type === 'library-message') libraryMessage.textContent = event.data.text;
       if (event.data === 'expand' && trayControls) menu(true);
       if (event.data === 'collapse' && !$('menuActions').hidden) menu(false, false);
     });

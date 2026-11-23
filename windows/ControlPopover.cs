@@ -1,8 +1,10 @@
 using System;
 using System.Diagnostics;
 using System.Drawing;
+using System.IO;
 using System.Net;
 using System.Runtime.InteropServices;
+using System.Text;
 using System.Threading.Tasks;
 using System.Web.Script.Serialization;
 using System.Windows.Forms;
@@ -24,6 +26,7 @@ public sealed class ControlPopover : Form
     private string controlsRequest;
     private bool reportingVisibility;
     private bool exiting;
+    private bool fileDialogOpen;
 
     protected override bool ShowWithoutActivation { get { return true; } }
 
@@ -94,7 +97,7 @@ public sealed class ControlPopover : Form
                 Close();
             }
         };
-        Deactivate += delegate { CloseControls(); };
+        Deactivate += delegate { if (!fileDialogOpen) CloseControls(); };
         desktopTimer.Tick += async delegate
         {
             PlaceAboveTaskbar();
@@ -282,9 +285,12 @@ public sealed class ControlPopover : Form
     private void SetInteractiveRegion(object sender, CoreWebView2WebMessageReceivedEventArgs args)
     {
         if (args.Source != controlsUrl.AbsoluteUri) return;
-        if (args.WebMessageAsJson == "\"close-controls\"")
+        if (args.WebMessageAsJson.StartsWith("\""))
         {
-            CloseControls();
+            var message = args.TryGetWebMessageAsString();
+            if (message == "close-controls") CloseControls();
+            else if (message == "import-library" || message.StartsWith("export-library:", StringComparison.Ordinal))
+                BeginInvoke(new Action(() => TransferLibrary(message)));
             return;
         }
         var report = json.Deserialize<ControlBounds>(args.WebMessageAsJson);
@@ -306,6 +312,66 @@ public sealed class ControlPopover : Form
         var previous = Region;
         Region = region;
         if (previous != null) previous.Dispose();
+    }
+
+    private void TransferLibrary(string message)
+    {
+        if (!popupOpen || fileDialogOpen || exiting) return;
+        const int limit = 128 * 1024;
+        const string filter = "Livestream Roulette library (*.json)|*.json";
+        fileDialogOpen = true;
+        try
+        {
+            if (message == "import-library")
+            {
+                using (var dialog = new OpenFileDialog { Filter = filter })
+                {
+                    if (dialog.ShowDialog(this) != DialogResult.OK) return;
+                    using (var file = dialog.OpenFile())
+                    {
+                        if (file.Length > limit)
+                        {
+                            LibraryMessage("library-message", "This library backup is too large.");
+                            return;
+                        }
+                        using (var reader = new StreamReader(file))
+                            LibraryMessage("library-import", reader.ReadToEnd());
+                    }
+                }
+            }
+            else
+            {
+                var text = message.Substring("export-library:".Length);
+                if (Encoding.UTF8.GetByteCount(text) > limit) return;
+                using (var dialog = new SaveFileDialog
+                {
+                    Filter = filter, DefaultExt = "json", AddExtension = true,
+                    FileName = "livestream-roulette-library.json"
+                })
+                {
+                    if (dialog.ShowDialog(this) != DialogResult.OK) return;
+                    File.WriteAllText(dialog.FileName, text);
+                    LibraryMessage("library-message", "Library backup saved.");
+                }
+            }
+        }
+        catch (IOException)
+        {
+            LibraryMessage("library-message", "Could not read or write the library backup.");
+        }
+        catch (UnauthorizedAccessException)
+        {
+            LibraryMessage("library-message", "Could not read or write the library backup.");
+        }
+        finally
+        {
+            fileDialogOpen = false;
+        }
+    }
+
+    private void LibraryMessage(string type, string text)
+    {
+        web.CoreWebView2.PostWebMessageAsJson(json.Serialize(new { type, text }));
     }
 
     public static void Open(string url, string profile)

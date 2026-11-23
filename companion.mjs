@@ -53,9 +53,11 @@ export function connectCompanion(mode, handlers) {
       const snapshot = structuredClone(settings);
       pending += 1;
       revision += 1;
-      writes = writes.then(() => request('settings', snapshot))
+      const saved = writes.then(() => request('settings', snapshot));
+      writes = saved
         .catch(() => handlers.error('Could not save wallpaper settings.'))
         .finally(() => { pending -= 1; });
+      return saved.then(() => true, () => false);
     },
     command(action, id) {
       writes = writes.then(() => request('command', { action, id }))

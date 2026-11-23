@@ -16,6 +16,7 @@ ASSETS = {
     "/": ("index.html", "text/html; charset=utf-8"),
     "/index.html": ("index.html", "text/html; charset=utf-8"),
     "/stream-rules.mjs": ("stream-rules.mjs", "text/javascript; charset=utf-8"),
+    "/library-backup.mjs": ("library-backup.mjs", "text/javascript; charset=utf-8"),
     "/companion.mjs": ("companion.mjs", "text/javascript; charset=utf-8"),
     "/youtube-trial.html": ("youtube-trial.html", "text/html; charset=utf-8"),
     "/youtube-trial.mjs": ("youtube-trial.mjs", "text/javascript; charset=utf-8"),
