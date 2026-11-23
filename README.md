@@ -29,6 +29,10 @@ To diagnose the connection, open `http://127.0.0.1:8768/?controls=1` in a regula
 
 Companion mode plays direct media while at least half of the primary desktop's working area is visible. When coverage exceeds half, it keeps the last available video frame on screen and stops fetching the stream. HLS resumes through the existing player when possible. Other direct video reconnects to the same camera. The still stays in memory, and playback waits for a fresh Windows coverage sample.
 
+Open **Settings → Playlists** to create a named playlist from your saved cameras. Select it under **Play from**, or choose **All cameras** for the full library. The collection filters, live schedules, and YouTube preference still apply. Saving a new playlist selects it. Deleting a playlist keeps its cameras in the library.
+
+For direct video and the official YouTube player, playback errors or a sustained wait trigger one reconnect. If it still fails, rotation skips the camera for about a minute and retries when it becomes eligible again. **Stay here** keeps retries on the selected camera. When every camera is unavailable, playback waits on the last available direct-video frame or a status screen.
+
 ### Optional YouTube sources
 
 In the tray, open **Settings → Cameras** and turn on **Include YouTube sources**. Add an embeddable YouTube video using **YouTube official player** and its watch URL. YouTube is off by default. Turning it off excludes saved YouTube sources from **Next** and automatic rotation.
@@ -42,6 +46,6 @@ The separate Barn Owl Live trial remains at `http://127.0.0.1:8768/youtube-trial
 - Run `node --test tests/stream-rules.test.mjs` with Node.js 20+ for URL, schedule, and playback eligibility checks.
 - Run `python -B -m unittest discover -s tests -p test_companion_server.py` for loopback settings persistence, command sequencing, and request validation.
 - Run `powershell.exe -NoProfile -ExecutionPolicy RemoteSigned -File .\tests\desktop-visibility.ps1` for Windows coverage geometry, including overlapping windows and off-screen rectangles.
-- With the loopback server running, open `http://127.0.0.1:8765/tests/browser.html` in Chrome or Edge. Use a dedicated profile or private window. The page temporarily replaces this origin's playlist and reports **PASS** or the first failed check. It exercises browser controls with synthetic entries.
+- Run `python -m http.server 8765 --bind 127.0.0.1` from the repository root and open `http://127.0.0.1:8765/tests/browser.html` in Chrome or Edge. Use a dedicated profile or private window. The page temporarily replaces this origin's settings and reports **PASS** or the first failed check. It covers browser controls, playlist persistence, automatic rotation, and the recovery screen with synthetic entries.
 
 See the [product and technical design](docs/DESIGN.md) for the roadmap.

@@ -99,7 +99,19 @@ fieldset label{margin:9px 0}
 <button id="rotationCategory" aria-expanded="false" aria-controls="rotationSettings">‹ Rotation</button>
 <button id="displayCategory" aria-expanded="false" aria-controls="displaySettings">‹ Display</button>
 <button id="camerasCategory" aria-expanded="false" aria-controls="cameraSettings">‹ Cameras</button>
+<button id="playlistsCategory" aria-expanded="false" aria-controls="playlistSettings">‹ Playlists</button>
 </section>
+<aside id="playlistSettings" class="submenu settings-detail" hidden aria-labelledby="playlistHeading">
+<h2 id="playlistHeading">Playlists</h2>
+<label for="activePlaylist">Play from</label><select id="activePlaylist"></select>
+<button id="newPlaylist" type="button">New playlist</button>
+<form id="playlistForm" hidden>
+<label for="playlistName">Playlist name</label><input id="playlistName" maxlength="80" required>
+<fieldset id="playlistCameras"><legend>Cameras in playlist</legend></fieldset>
+<button type="submit">Save playlist</button>
+<button type="button" id="deletePlaylist">Delete playlist</button>
+</form>
+</aside>
 <aside id="rotationSettings" class="submenu settings-detail" hidden aria-labelledby="rotationHeading">
 <h2 id="rotationHeading">Rotation</h2>
 <label for="interval">Rotate every</label><select id="interval"><option value="15">15 minutes</option><option value="30">30 minutes</option><option value="60">60 minutes</option><option value="120">120 minutes</option><option value="custom">Custom</option></select>
@@ -151,12 +163,17 @@ import { connectCompanion, reportControlBounds } from './companion.mjs';
 import { createYouTubePlayer } from './youtube-player.mjs';
 (()=>{
 const KEY='livestream-roulette-v1';
-const defaults={interval:30,customIntervalSeconds:30,muted:true,showInfo:false,allowYouTube:false,enabled:['Wildlife','Space','Nature','Other'],streams:[]};
+const defaults={interval:30,customIntervalSeconds:30,muted:true,showInfo:false,allowYouTube:false,enabled:['Wildlife','Space','Nature','Other'],streams:[],playlists:[],activePlaylist:null};
 const $=id=>document.getElementById(id);
 function readSettings(data) {
   const settings = { ...defaults, ...data };
   if (!Array.isArray(settings.streams)) settings.streams = [];
   if (!Array.isArray(settings.enabled)) settings.enabled = [...defaults.enabled];
+  const cameraIds = new Set(settings.streams.filter(Boolean).map(stream => stream.id));
+  settings.playlists = Array.isArray(settings.playlists) ? settings.playlists
+    .filter(list => typeof list?.id === 'string' && typeof list.name === 'string' && Array.isArray(list.cameraIds))
+    .map(list => ({ ...list, cameraIds: [...new Set(list.cameraIds.filter(id => cameraIds.has(id)))] })) : [];
+  if (!settings.playlists.some(list => list.id === settings.activePlaylist)) settings.activePlaylist = null;
   if (![15, 30, 60, 120, 'custom'].includes(settings.interval)) settings.interval = defaults.interval;
   if (!validCustomInterval(settings.customIntervalSeconds)) settings.customIntervalSeconds = defaults.customIntervalSeconds;
   return settings;
@@ -175,7 +192,14 @@ document.body.classList.toggle('controls', controls);
 document.body.classList.toggle('tray-controls', trayControls);
 document.body.classList.toggle('controlled-wallpaper', controlledWallpaper);
 if (controlledWallpaper) $('sourceHint').textContent = 'Open Livestream Roulette in the Windows system tray to add a source.';
-const failed = new Set();
+const failed = new Map();
+const stallTimeout = 15000;
+let recoveryAttempt = false;
+let retryHeldId;
+let lastProgressTime = 0;
+let lastMediaTime = 0;
+let healthySince = 0;
+let autoplayBlocked = false;
 let current=null,history=[],index=-1,timer=null,hold=false;
 let playbackStatus = '';
 let mediaGeneration = 0;
@@ -192,6 +216,7 @@ const youtube = controlledWallpaper ? createYouTubePlayer({
   stage: $('youtubeArea'),
   onMounted(mounted) {
     youtubeMounted = mounted;
+    lastProgressTime = 0;
     display();
   },
   onStatus(message) {
@@ -203,10 +228,7 @@ const youtube = controlledWallpaper ? createYouTubePlayer({
   },
   onFailure() {
     if (current?.kind !== 'youtube') return;
-    failed.add(current.id);
-    drawList();
-    if (hold) playStream(null, false);
-    else pickNext();
+    recoverPlayback();
   }
 }) : null;
 function save() {
@@ -218,11 +240,13 @@ function save() {
 }
 function eligible() {
   const now = new Date();
-  return state.streams.filter(s => s && !failed.has(s.id)
+  const playlist = state.playlists.find(list => list.id === state.activePlaylist);
+  return state.streams.filter(s => s && !(failed.get(s.id) > now.getTime())
+    && (!playlist || playlist.cameraIds.includes(s.id))
     && (s.kind !== 'youtube' || controls || controlledWallpaper)
     && canPlay(s, state, wallpaper || controls, now));
 }
-function drawList(){const pool=eligible();const root=$('sources');root.replaceChildren();const heading=document.createElement('h3');heading.textContent='Saved cameras ('+state.streams.length+')';root.append(heading);for(const s of state.streams.filter(Boolean)){const entry=document.createElement('div');entry.className='item';const name=document.createElement('strong');name.textContent=s.title;const desc=document.createElement('small');desc.textContent=s.institution+' · '+s.collection;const row=document.createElement('div');row.className='row';const play=document.createElement('button');play.textContent='Play';play.disabled=!pool.includes(s);play.onclick=()=>{if(eligible().includes(s))playStream(s,true)};const remove=document.createElement('button');remove.textContent='Remove';remove.onclick=()=>{state.streams=state.streams.filter(x=>x.id!==s.id);save();drawList();refreshEligibility();schedule();};row.append(play,remove);entry.append(name,desc,row);root.append(entry)}}
+function drawList(){const pool=eligible();const root=$('sources');root.replaceChildren();const heading=document.createElement('h3');heading.textContent='Saved cameras ('+state.streams.length+')';root.append(heading);for(const s of state.streams.filter(Boolean)){const entry=document.createElement('div');entry.className='item';const name=document.createElement('strong');name.textContent=s.title;const desc=document.createElement('small');desc.textContent=s.institution+' · '+s.collection;const row=document.createElement('div');row.className='row';const play=document.createElement('button');play.textContent='Play';play.disabled=!pool.includes(s);play.onclick=()=>{if(eligible().includes(s))playStream(s,true)};const remove=document.createElement('button');remove.textContent='Remove';remove.onclick=()=>{state.streams=state.streams.filter(x=>x.id!==s.id);for(const list of state.playlists)list.cameraIds=list.cameraIds.filter(id=>id!==s.id);save();drawPlaylists();drawList();refreshEligibility();schedule();};row.append(play,remove);entry.append(name,desc,row);root.append(entry)}}
 function display() {
   if (controlledWallpaper) publishStatus();
   const isYouTubeSource = current?.kind === 'youtube';
@@ -304,7 +328,48 @@ function loadHls() {
   return hlsLibrary;
 }
 
-function playStream(stream, record) {
+function recoverPlayback() {
+  if (!current || document.hidden || !desktopViewable) return;
+  const stream = current;
+  if (stream.kind === 'video' && videoHasPlayed) rememberFrame();
+  if (!recoveryAttempt) {
+    playStream(stream, false, true);
+    return;
+  }
+  failed.set(stream.id, Date.now() + 60000);
+  if (hold) retryHeldId = stream.id;
+  drawList();
+  if (hold) playStream(null, false);
+  else pickNext();
+}
+
+function checkPlaybackProgress() {
+  const video = $('video');
+  const now = performance.now();
+  const advancing = current?.kind === 'video' && videoHasPlayed && !video.paused && video.currentTime !== lastMediaTime;
+  const playingYouTube = current?.kind === 'youtube' && youtubeMounted && playbackStatus.startsWith('Playing');
+  if (!document.hidden && desktopViewable && (advancing || playingYouTube)) {
+    if (!healthySince) healthySince = now;
+    if (now - healthySince >= stallTimeout) recoveryAttempt = false;
+  } else {
+    healthySince = 0;
+  }
+  const watchingVideo = current?.kind === 'video' && !autoplayBlocked && (!videoHasPlayed || !video.paused);
+  const watchingYouTube = current?.kind === 'youtube' && youtubeMounted
+    && !/^(Paused|Playing|YouTube autoplay)/.test(playbackStatus);
+  if (controls || document.hidden || !desktopViewable || (!watchingVideo && !watchingYouTube)) {
+    lastProgressTime = 0;
+    return;
+  }
+  if (!lastProgressTime || (watchingVideo && video.currentTime !== lastMediaTime)) {
+    lastProgressTime = now;
+    lastMediaTime = video.currentTime;
+  } else if (now - lastProgressTime >= stallTimeout) {
+    recoverPlayback();
+  }
+}
+
+function playStream(stream, record, retry = false) {
   if (controls) {
     if (stream) companion.command('play', stream.id);
     return;
@@ -312,6 +377,10 @@ function playStream(stream, record) {
   const video = $('video');
   const player = $('player');
   const generation = ++mediaGeneration;
+  recoveryAttempt = retry;
+  lastProgressTime = lastMediaTime = healthySince = 0;
+  autoplayBlocked = false;
+  if (stream && !retry) retryHeldId = undefined;
   videoHasPlayed = false;
   youtube?.update(null, youtubeSample);
   clearTimeout(bufferingTimer);
@@ -324,10 +393,10 @@ function playStream(stream, record) {
   player.removeAttribute('src');
   current = stream;
   if (!stream) {
-    $('lastFrame').width = 0;
+    if (!failed.size) $('lastFrame').width = 0;
     playbackStatus = '';
     $('emptyStatus').textContent = failed.size
-      ? 'Playback failed or ended. Use Next to retry.'
+      ? 'Playback is unavailable. Retrying shortly.'
       : 'No cameras are eligible for the current settings and live hours.';
     display();
     schedule();
@@ -361,10 +430,12 @@ function playStream(stream, record) {
     video.muted = state.muted;
     function failedPlayback() {
       if (generation !== mediaGeneration) return;
-      failed.add(stream.id);
-      drawList();
-      if (hold) playStream(null, false);
-      else pickNext();
+      recoverPlayback();
+    }
+    function startVideo() {
+      video.play().catch(error => {
+        if (generation === mediaGeneration && error.name === 'NotAllowedError') autoplayBlocked = true;
+      });
     }
     video.onended = video.onerror = failedPlayback;
     video.onwaiting = () => {
@@ -381,6 +452,7 @@ function playStream(stream, record) {
       if (!desktopViewable) return;
       const started = !videoHasPlayed;
       videoHasPlayed = true;
+      autoplayBlocked = false;
       playbackStatus = 'Playing · Live status unverified';
       const still = $('lastFrame');
       if (still.width > 0 && video.requestVideoFrameCallback) {
@@ -405,14 +477,14 @@ function playStream(stream, record) {
           if (error.fatal) failedPlayback();
         });
         hlsPlayer.on(Hls.Events.MANIFEST_PARSED, () => {
-          if (generation === mediaGeneration && desktopViewable) video.play().catch(() => {});
+          if (generation === mediaGeneration && desktopViewable) startVideo();
         });
         hlsPlayer.loadSource(stream.embed);
         hlsPlayer.attachMedia(video);
       }).catch(failedPlayback);
     } else {
       video.src = stream.embed;
-      video.play().catch(() => {});
+      startVideo();
     }
   } else {
     playbackStatus = 'Live status and playback errors are unobservable in this player.';
@@ -434,6 +506,7 @@ function previous() {
 }
 function retryNext() {
   failed.clear();
+  retryHeldId = undefined;
   drawList();
   pickNext();
 }
@@ -463,7 +536,8 @@ const categories = {
   info: 'cameraDetails',
   rotationCategory: 'rotationSettings',
   displayCategory: 'displaySettings',
-  camerasCategory: 'cameraSettings'
+  camerasCategory: 'cameraSettings',
+  playlistsCategory: 'playlistSettings'
 };
 let activeCategory = null;
 function openCategory(category, restoreFocus = true) {
@@ -501,6 +575,64 @@ for (const id of Object.keys(branches)) {
 for (const id of Object.keys(categories)) {
   $(id).onclick = () => openCategory(activeCategory === id ? null : id);
 }
+
+let editingNewPlaylist = false;
+function drawPlaylists() {
+  const selector = $('activePlaylist');
+  selector.replaceChildren(new Option('All cameras', ''));
+  for (const list of state.playlists) selector.add(new Option(list.name, list.id));
+  selector.value = state.activePlaylist ?? '';
+  const list = editingNewPlaylist ? null : state.playlists.find(item => item.id === state.activePlaylist);
+  $('playlistForm').hidden = !editingNewPlaylist && !list;
+  $('deletePlaylist').hidden = !list;
+  $('playlistName').value = list?.name ?? '';
+  const cameras = $('playlistCameras');
+  cameras.replaceChildren(cameras.querySelector('legend'));
+  for (const stream of state.streams.filter(Boolean)) {
+    const label = document.createElement('label');
+    const checkbox = document.createElement('input');
+    checkbox.type = 'checkbox';
+    checkbox.value = stream.id;
+    checkbox.checked = list?.cameraIds.includes(stream.id) ?? false;
+    label.append(checkbox, ' ' + stream.title);
+    cameras.append(label);
+  }
+}
+
+function changePlaylist(id) {
+  state.activePlaylist = id;
+  editingNewPlaylist = false;
+  save();
+  drawPlaylists();
+  drawList();
+  refreshEligibility();
+}
+
+$('activePlaylist').onchange = () => changePlaylist($('activePlaylist').value || null);
+$('newPlaylist').onclick = () => {
+  editingNewPlaylist = true;
+  drawPlaylists();
+  $('playlistName').focus();
+};
+$('playlistForm').onsubmit = event => {
+  event.preventDefault();
+  const name = $('playlistName').value.trim();
+  if (!name) return;
+  const cameraIds = [...$('playlistCameras').querySelectorAll('input:checked')].map(input => input.value);
+  const id = editingNewPlaylist ? crypto.randomUUID() : state.activePlaylist;
+  const updated = { id, name, cameraIds };
+  if (editingNewPlaylist) state.playlists.push(updated);
+  else state.playlists = state.playlists.map(list => list.id === id ? updated : list);
+  changePlaylist(id);
+  $('activePlaylist').focus();
+};
+$('deletePlaylist').onclick = () => {
+  state.playlists = state.playlists.filter(list => list.id !== state.activePlaylist);
+  changePlaylist(null);
+  $('activePlaylist').focus();
+};
+drawPlaylists();
+
 function drawRotationSettings() {
   $('interval').value = String(state.interval);
   $('customIntervalSeconds').value = String(state.customIntervalSeconds);
@@ -561,7 +693,7 @@ $('addForm').onsubmit=e=>{e.preventDefault();const embed=https($('newEmbed').val
  }
  const s={kind,schedule,id:crypto.randomUUID?.()||String(Date.now())+Math.random(),title:$('newTitle').value.trim(),institution:$('newInstitution').value.trim(),collection:$('newCollection').value,embed,original,donation};
  if(!s.title||!s.institution)return;
- state.streams.push(s);save();drawList();$('addForm').reset();$('formMessage').textContent='Camera saved locally. Playback and liveness are not verified.';refreshEligibility();schedule()};
+ state.streams.push(s);save();drawPlaylists();drawList();$('addForm').reset();$('formMessage').textContent='Camera saved locally. Playback and liveness are not verified.';refreshEligibility();schedule()};
 window.addEventListener('keydown', e => {
   if (e.key === 'Escape') {
     if (activeCategory) openCategory(null);
@@ -578,6 +710,9 @@ window.addEventListener('keydown', e => {
 });
 let lastPool = '';
 function refreshEligibility() {
+  for (const [id, until] of failed) {
+    if (Date.now() >= until) failed.delete(id);
+  }
   const pool = eligible();
   const signature = JSON.stringify(pool.map(stream => stream.id));
   if (lastPool !== signature) {
@@ -589,8 +724,12 @@ function refreshEligibility() {
   if (current && !pool.includes(current)) {
     if (hold) playStream(null, false);
     else pickNext();
-  } else if (!current && !hold && pool.length) {
-    pickNext();
+  } else if (!current && pool.length) {
+    if (!hold) pickNext();
+    else {
+      const stream = pool.find(candidate => candidate.id === retryHeldId);
+      if (stream) playStream(stream, false);
+    }
   }
 }
 document.addEventListener('visibilitychange', () => {
@@ -601,6 +740,7 @@ document.addEventListener('visibilitychange', () => {
   }
 });
 setInterval(refreshEligibility, 15000);
+if (!controls) setInterval(checkPlaybackProgress, 1000);
 drawList();
 function applySharedSettings(data) {
   const settings = readSettings(data);
@@ -609,6 +749,7 @@ function applySharedSettings(data) {
     && stream.embed === current.embed && stream.kind === current.kind);
   if (replacement) current = replacement;
   state = settings;
+  drawPlaylists();
   drawRotationSettings();
   $('startMuted').checked = $('video').defaultMuted = $('video').muted = state.muted;
   $('allowYouTube').checked = state.allowYouTube === true;
