@@ -12,13 +12,15 @@ Add an entry under **Recent work** when a change lands or a test changes what we
 ## Open work
 
 1. **Verify start at sign-in on Windows.** The tray's **Start at sign-in** item writes an HKCU Run entry. On November 22, 2026 the tray compiled on Windows, the item could be checked, and a restart brought back the tray and wallpaper. Wallpaper Engine started before the local server and briefly showed Edge's "127.0.0.1 refused to connect" page. It then loaded the playlist (Color Bars) without help. A possible follow-up is to have the launcher ask Wallpaper Engine to reload once the server is ready, if its command line supports that for URL wallpapers.
-2. **Finish playback recovery validation.** Test a feed that stalls after it has started, Windows sleep and wake, and audible mute behavior. Startup hangs and coverage-driven pause and resume have been tested in Wallpaper Engine. See [validation results](VALIDATION.md).
+2. **Finish playback recovery validation.** A mid-stream stall is now covered by `tests/stall-recovery.mjs` in headless Chromium. Still test Windows sleep and wake, a network drop in Wallpaper Engine, and audible mute behavior. Startup hangs and coverage-driven pause and resume have been tested in Wallpaper Engine. See [validation results](VALIDATION.md).
 3. **Verify native library backup dialogs.** The Edge file import and backup merge tests passed. The updated tray initialized, and a complete Save/Open round trip through the Windows dialogs remains unverified.
 4. **Find a second direct wildlife feed for rotation with YouTube off.** The AGH kestrel cam played in a private local test. Its live hours and wallpaper permission are unresolved. Ocean Networks Canada published working HLS transport for scheduled underwater cams. Camera-specific permission and on-window playback still need confirmation. See [feed research](FEED-RESEARCH.md).
 
 ## Recent work
 
 ### November 23, 2026
+
+- **Mid-stream stall recovery test.** `tests/stall-recovery.mjs` serves a direct WebM that stops answering range requests after about ten seconds. In headless Chromium the app detected the stall after 15 seconds, reconnected once, saw the retry stall, and switched to the healthy camera about 47 seconds in.
 
 - **Camera editing, hourly live windows, start at sign-in.** Saved cameras have **Edit**, which keeps the camera ID and its playlists. Editing the playing camera keeps it on screen, or restarts it if its URL or player changed. Live hours can repeat every hour using the minutes only, for ONC-style cameras, and backups keep that setting. Fixed the add-camera handler shadowing `schedule()`, which threw after each save and skipped rescheduling. Node tests (13) and the headless Chromium browser smoke test passed. Windows verification of the sign-in toggle is open work.
 

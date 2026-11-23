@@ -52,6 +52,7 @@ The separate Barn Owl Live trial remains at `http://127.0.0.1:8768/youtube-trial
 - Run `python -B -m unittest discover -s tests -p test_companion_server.py` for loopback settings persistence, command sequencing, and request validation.
 - Run `powershell.exe -NoProfile -ExecutionPolicy RemoteSigned -File .\tests\desktop-visibility.ps1` for Windows coverage geometry, including overlapping windows and off-screen rectangles.
 - Run `python -m http.server 8765 --bind 127.0.0.1` from the repository root and open `http://127.0.0.1:8765/tests/browser.html` in Chrome or Edge. Use a dedicated profile or private window. The page temporarily replaces this origin's settings and reports **PASS** or the first failed check. It covers browser controls, playlist persistence, automatic rotation, and the recovery screen with synthetic entries.
+- With that server running and Playwright and ffmpeg installed, run `node tests/stall-recovery.mjs`. It checks that a direct feed that stops mid-stream gets one reconnect and then hands over to another camera.
 
 See the [product and technical design](docs/DESIGN.md) for the roadmap.
 See the [running work log](docs/HANDOFF.md) for handoffs, verification status, and open work.
