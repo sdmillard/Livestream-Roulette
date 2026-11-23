@@ -11,7 +11,7 @@ Add an entry under **Recent work** when a change lands or a test changes what we
 
 ## Open work
 
-1. **Verify start at sign-in on Windows.** The tray's **Start at sign-in** item writes an HKCU Run entry. On November 22, 2026 the tray compiled on Windows and the item could be checked. Confirm that a sign-out/sign-in starts the server and tray.
+1. **Verify start at sign-in on Windows.** The tray's **Start at sign-in** item writes an HKCU Run entry. On November 22, 2026 the tray compiled on Windows, the item could be checked, and a restart brought back the tray and wallpaper. Wallpaper Engine started before the local server and briefly showed Edge's "127.0.0.1 refused to connect" page. It then loaded the playlist (Color Bars) without help. A possible follow-up is to have the launcher ask Wallpaper Engine to reload once the server is ready, if its command line supports that for URL wallpapers.
 2. **Finish playback recovery validation.** Test a feed that stalls after it has started, Windows sleep and wake, and audible mute behavior. Startup hangs and coverage-driven pause and resume have been tested in Wallpaper Engine. See [validation results](VALIDATION.md).
 3. **Verify native library backup dialogs.** The Edge file import and backup merge tests passed. The updated tray initialized, and a complete Save/Open round trip through the Windows dialogs remains unverified.
 4. **Find a second direct wildlife feed for rotation with YouTube off.** The AGH kestrel cam played in a private local test. Its live hours and wallpaper permission are unresolved. Ocean Networks Canada published working HLS transport for scheduled underwater cams. Camera-specific permission and on-window playback still need confirmation. See [feed research](FEED-RESEARCH.md).
