@@ -111,6 +111,25 @@ try {
   reloaded.remove();
   el('deletePlaylist').click();
   check(el('activePlaylist').value === '' && !buttons()[1].disabled, 'Deleting the active playlist returns to all cameras');
+  const item = title => [...doc.querySelectorAll('#sources .item')]
+    .find(entry => entry.querySelector('strong').textContent === title);
+  item('second').querySelector('button:nth-child(2)').click();
+  check(el('newTitle').value === 'second' && el('addSubmit').textContent === 'Save changes', 'Edit fills the camera form');
+  el('newTitle').value = 'second edited';
+  el('liveRepeat').value = 'hourly';
+  el('timezone').value = 'UTC';
+  el('liveStart').value = '00:00';
+  el('liveEnd').value = '00:00';
+  el('addSubmit').click();
+  check(Boolean(item('second')), 'Hourly windows need different minutes');
+  el('liveEnd').value = '00:59';
+  el('addSubmit').click();
+  const saved = JSON.parse(localStorage.getItem(key)).streams.find(entry => entry.id === 'second');
+  check(saved.title === 'second edited' && saved.schedule.repeat === 'hourly', 'Edit keeps the camera ID and saves hourly hours');
+  check(!item('second') && el('addSubmit').textContent === 'Add camera' && el('cancelEdit').hidden, 'Saving ends edit mode');
+  item('first').querySelector('button:nth-child(2)').click();
+  el('cancelEdit').click();
+  check(el('newTitle').value === '' && el('addSubmit').textContent === 'Add camera', 'Cancel clears the edit');
   const transfer = new frame.contentWindow.DataTransfer();
   transfer.items.add(new frame.contentWindow.File([JSON.stringify({
     format: 'livestream-roulette-library',

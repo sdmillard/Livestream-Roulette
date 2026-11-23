@@ -77,3 +77,22 @@ test('legacy embeds need audio opt-in and stay out of wallpaper mode', () => {
   assert.equal(canPlay({ ...stream, kind: 'video' }, { ...settings, enabled: [] }, false), false);
   assert.equal(canPlay({ ...stream, embed: 'https://youtu.be/123' }, { ...settings, muted: false }, false), false);
 });
+
+test('hourly windows repeat every hour using only the minutes', () => {
+  const hours = liveWindow('America/St_Johns', '00:00', '00:05', 'hourly');
+  assert.deepEqual(hours, { timezone: 'America/St_Johns', start: '00:00', end: '00:05', repeat: 'hourly' });
+  // St. John's is UTC-3:30 in November, so its hour starts at :30 UTC.
+  for (const date of ['2026-11-22T01:30:00Z', '2026-11-22T14:34:59Z']) {
+    assert.equal(inLiveWindow(hours, new Date(date)), true);
+  }
+  for (const date of ['2026-11-22T01:35:00Z', '2026-11-22T02:00:00Z', '2026-11-22T02:29:00Z']) {
+    assert.equal(inLiveWindow(hours, new Date(date)), false);
+  }
+  const wrap = liveWindow('UTC', '00:55', '00:05', 'hourly');
+  assert.equal(inLiveWindow(wrap, new Date('2026-11-22T07:58:00Z')), true);
+  assert.equal(inLiveWindow(wrap, new Date('2026-11-22T08:03:00Z')), true);
+  assert.equal(inLiveWindow(wrap, new Date('2026-11-22T08:30:00Z')), false);
+  assert.throws(() => liveWindow('UTC', '01:05', '02:05', 'hourly'));
+  assert.throws(() => liveWindow('UTC', '07:00', '19:00', 'weekly'));
+  assert.equal(liveWindow('UTC', '07:00', '19:00', 'daily').repeat, undefined);
+});
