@@ -23,7 +23,7 @@ The companion puts a Livestream Roulette icon in the Windows notification area. 
 2. In Wallpaper Engine, select **Open Wallpaper → Open from URL**. Enter `http://127.0.0.1:8768/?wallpaper=1&companion=1` and enable **Use Livestream Mode**.
 3. Click **Livestream Roulette** near the clock. It may appear under **Show hidden icons**. Add a publisher-authorized direct source under **Settings → Cameras**. A direct HLS source can use an HTTPS `.m3u8` URL if its server allows cross-origin playlist and segment requests. The native control and wallpaper read the shared settings from the local service. The settings file is stored in `%LOCALAPPDATA%/Livestream Roulette/settings.json`.
 
-Use the launcher whenever you want to start the companion, including after signing in to Windows. If you select **Exit** in the tray, the server stays available. Once the icon has disappeared, wait a few seconds before relaunching so the last desktop visibility report can expire. Startup logs are in `%LOCALAPPDATA%/Livestream Roulette/Logs/8768`.
+Use the launcher whenever you want to start the companion, including after signing in to Windows. **Close menu** dismisses the popover and keeps the tray icon and local server running. Startup logs are in `%LOCALAPPDATA%/Livestream Roulette/Logs/8768`.
 
 To diagnose the connection, open `http://127.0.0.1:8768/?controls=1` in a regular browser. It uses the same settings and playback controls. Keep one control surface open while editing the camera list.
 
