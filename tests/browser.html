@@ -37,29 +37,183 @@ try {
   const buttons = () => [...doc.querySelectorAll('#sources .item button:first-child')];
   check(el('player').hidden, 'Default settings must block generic iframe audio');
   check(buttons().every(button => button.disabled), 'Ineligible cameras must disable manual Play');
+  check(el('menuActions').hidden, 'Playback actions start collapsed');
+  el('menu').click();
+  check(!el('menuActions').hidden, 'Menu reveals playback actions');
+  el('playback').click();
+  check(!el('playbackPanel').hidden && !el('menuActions').hidden, 'Playback opens beside its parent');
   el('settings').click();
+  check(el('playbackPanel').hidden, 'Opening Settings replaces the Playback submenu');
   check(!el('panel').hidden, 'Settings opens');
+  el('settings').click();
+  check(el('panel').hidden && !el('menuActions').hidden, 'Clicking the active row closes its submenu');
+  check(doc.activeElement === el('settings'), 'Closing restores focus to the parent row');
+  el('settings').click();
+  el('rotationCategory').click();
+  check(!el('rotationSettings').hidden && !el('panel').hidden, 'Rotation opens while its parent stays visible');
+  el('displayCategory').click();
+  check(el('rotationSettings').hidden && !el('displaySettings').hidden, 'Category selection replaces the previous detail panel');
+  el('rotationCategory').click();
+  el('interval').dispatchEvent(new frame.contentWindow.KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+  check(el('rotationSettings').hidden && !el('panel').hidden, 'Escape closes only the settings detail');
+  check(doc.activeElement === el('rotationCategory'), 'Escape restores focus to the category row');
+  el('rotationCategory').dispatchEvent(new frame.contentWindow.KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+  check(el('panel').hidden && !el('menuActions').hidden, 'Escape returns to the parent menu');
+  el('settings').click();
+  el('displayCategory').click();
   el('startMuted').click();
   check(!el('player').hidden, 'Audio opt-in enables generic embeds');
   check(buttons()[2].disabled && buttons()[3].disabled, 'Schedule and YouTube checks apply to Play');
   const first = el('player').getAttribute('src');
+  el('playback').click();
+  el('info').click();
+  check(!el('cameraDetails').hidden && !el('playbackPanel').hidden, 'Camera info opens alongside Playback');
+  check(el('meta').hidden, 'Opening camera info leaves the optional overlay hidden');
+  check(el('detailOriginal').href === 'https://example.invalid/watch', 'Camera details show the source link');
   el('next').click();
   check(el('player').getAttribute('src') !== first, 'Next avoids immediate repetition');
+  check(el('detailTitle').textContent === el('title').textContent, 'Camera details follow the selected stream');
   el('previous').click();
   check(el('player').getAttribute('src') === first, 'Back restores the previous camera');
   el('hold').click();
   check(el('hold').getAttribute('aria-pressed') === 'true', 'Stay here marks rotation as held');
+  el('settings').click();
+  check(el('cameraDetails').hidden, 'Switching branches closes camera info');
+  el('camerasCategory').click();
+  check(!el('cameraSettings').hidden, 'Cameras reveals collection and source settings');
+  el('playlistsCategory').click();
+  check(!el('playlistSettings').hidden && !el('panel').hidden, 'Playlists opens beside Settings');
+  el('newPlaylist').click();
+  el('playlistName').value = 'One camera';
+  doc.querySelector('#playlistCameras input[value="first"]').checked = true;
+  el('playlistForm').requestSubmit();
+  const playlistId = el('activePlaylist').value;
+  check(playlistId && buttons()[1].disabled, 'Creating a playlist limits manual playback to its members');
+  el('playback').click();
+  el('quickPlaylistCategory').click();
+  check(!el('quickPlaylistPanel').hidden && !el('playbackPanel').hidden, 'Playlist switcher opens beside Playback');
+  check(el('quickPlaylist').value === playlistId, 'Playback shows the active playlist');
+  el('quickPlaylist').value = '';
+  el('quickPlaylist').dispatchEvent(new Event('change'));
+  check(el('activePlaylist').value === '' && !buttons()[1].disabled, 'Playback can switch to all cameras');
+  buttons()[1].click();
+  el('quickPlaylist').value = playlistId;
+  el('quickPlaylist').dispatchEvent(new Event('change'));
+  check(el('activePlaylist').value === playlistId && buttons()[1].disabled
+    && el('player').getAttribute('src') === stream('first').embed, 'Quick switch updates playback and the editor while held');
+  el('settings').click();
+  el('playlistsCategory').click();
+  el('playlistName').value = 'Renamed';
+  el('playlistForm').requestSubmit();
+  check(el('activePlaylist').selectedOptions[0].text === 'Renamed', 'Playlist can be renamed');
+  const reloaded = await openApp();
+  check(reloaded.contentDocument.getElementById('activePlaylist').value === playlistId, 'Active playlist survives reload');
+  reloaded.remove();
+  el('deletePlaylist').click();
+  check(el('activePlaylist').value === '' && !buttons()[1].disabled, 'Deleting the active playlist returns to all cameras');
+  const transfer = new frame.contentWindow.DataTransfer();
+  transfer.items.add(new frame.contentWindow.File([JSON.stringify({
+    format: 'livestream-roulette-library',
+    version: 1,
+    streams: [stream('imported')],
+    playlists: [{ id: 'imported-list', name: 'Imported', cameraIds: ['imported'] }]
+  })], 'library.json', { type: 'application/json' }));
+  el('libraryFile').files = transfer.files;
+  el('libraryFile').dispatchEvent(new Event('change'));
+  const importDeadline = Date.now() + 3000;
+  while (!el('libraryMessage').textContent && Date.now() < importDeadline) {
+    await new Promise(resolve => setTimeout(resolve, 50));
+  }
+  check(el('libraryMessage').textContent === 'Added 1 camera and 1 playlist.', 'Browser file import confirms the merged library');
+  check([...el('activePlaylist').options].some(option => option.value === 'imported-list')
+    && el('activePlaylist').value === '', 'Import preserves the current selection');
   el('wildlife').click();
   check(el('player').hidden, 'Collection changes clear ineligible players while held');
   frame.remove();
 
+  const tray = await openApp('?controls=1');
+  const trayDoc = tray.contentDocument;
+  trayDoc.body.classList.add('tray-controls');
+  const trayEl = id => trayDoc.getElementById(id);
+  trayEl('dismissControls').hidden = false;
+  trayEl('menu').click();
+  trayEl('settings').click();
+  trayEl('playlistsCategory').click();
+  trayEl('newPlaylist').click();
+  const bounds = id => trayEl(id).getBoundingClientRect();
+  tray.style.cssText = 'width:540px;height:520px';
+  check(bounds('playlistSettings').right < bounds('panel').left
+    && bounds('panel').right < bounds('menuActions').left, 'Tray menus cascade to the left without overlap');
+  check(bounds('playlistSettings').bottom === bounds('menuActions').bottom, 'Tray panels share a taskbar anchor');
+  check(bounds('newPlaylist').top - bounds('activePlaylist').bottom >= 8, 'Playlist selector and New playlist have clearance');
+  for (const id of ['activePlaylist', 'newPlaylist', 'settings', 'playlistsCategory', 'playlistName']) {
+    trayEl(id).focus();
+    const style = tray.contentWindow.getComputedStyle(trayEl(id));
+    check(style.outlineOffset === '-3px' && parseFloat(style.outlineWidth) <= 3,
+      id + ' focus indicator stays inside the control');
+  }
+  trayEl('camerasCategory').click();
+  tray.style.cssText = 'width:360px;height:400px';
+  check(bounds('cameraSettings').bottom < bounds('panel').top
+    && bounds('panel').bottom < bounds('menuActions').top, 'Narrow tray stacks panels without overlap');
+  check(bounds('cameraSettings').top >= 0 && trayEl('cameraSettings').scrollHeight > trayEl('cameraSettings').clientHeight,
+    'Tall settings stay in the tray and scroll');
+  tray.remove();
+
   const wallpaper = await openApp('?wallpaper=1');
   check(!wallpaper.contentDocument.getElementById('wildlife').checked, 'Settings persisted');
   check(wallpaper.contentDocument.getElementById('player').hidden, 'Wallpaper mode skips generic iframe');
-  check(wallpaper.contentWindow.getComputedStyle(
-    wallpaper.contentDocument.querySelector('nav')
-  ).display === 'none', 'Wallpaper controls are hidden');
+  const wallpaperEl = id => wallpaper.contentDocument.getElementById(id);
+  const menuBounds = wallpaperEl('menu').getBoundingClientRect();
+  check(menuBounds.width === 36, 'Wallpaper mode exposes a compact gear');
+  check(wallpaper.contentWindow.innerHeight - menuBounds.bottom >= 48, 'Wallpaper gear clears the bottom edge');
+  check(wallpaperEl('menuActions').hidden, 'Wallpaper menu starts collapsed');
+  wallpaperEl('menu').click();
+  wallpaperEl('settings').click();
+  wallpaperEl('camerasCategory').click();
+  check(wallpaperEl('cameraSettings').getBoundingClientRect().width > 0, 'Wallpaper mode exposes camera settings');
   wallpaper.remove();
+
+  localStorage.setItem(key, JSON.stringify({
+    muted: false, interval: 'custom', customIntervalSeconds: 1,
+    streams: [
+      stream('one', { embed: 'https://127.0.0.1:1/one' }),
+      stream('two', { embed: 'https://127.0.0.1:1/two' })
+    ]
+  }));
+  const timed = await openApp();
+  const timedPlayer = timed.contentDocument.getElementById('player');
+  check(timed.contentDocument.getElementById('customIntervalSeconds').value === '1', 'Custom interval is restored');
+  const initialSource = timedPlayer.getAttribute('src');
+  await new Promise((resolve, reject) => {
+    const timeout = setTimeout(() => {
+      observer.disconnect();
+      reject(new Error('The one-second timer did not advance'));
+    }, 2500);
+    const observer = new MutationObserver(() => {
+      if (!timedPlayer.getAttribute('src') || timedPlayer.getAttribute('src') === initialSource) return;
+      clearTimeout(timeout);
+      observer.disconnect();
+      resolve();
+    });
+    observer.observe(timedPlayer, { attributes: true, attributeFilter: ['src'] });
+  });
+  timed.remove();
+  localStorage.setItem(key, JSON.stringify({
+    streams: [stream('broken', { kind: 'video', embed: 'https://127.0.0.1:1/broken.mp4' })]
+  }));
+  const recovery = await openApp();
+  const recoveryDoc = recovery.contentDocument;
+  await new Promise((resolve, reject) => {
+    const deadline = Date.now() + 5000;
+    const poll = () => {
+      if (recoveryDoc.getElementById('emptyStatus').textContent.includes('Retrying shortly')) resolve();
+      else if (Date.now() > deadline) reject(new Error('Failed camera did not enter recovery standby'));
+      else setTimeout(poll, 100);
+    };
+    poll();
+  });
+  recovery.remove();
   result.textContent = 'PASS';
 } catch (error) {
   result.textContent = 'FAIL: ' + error.message;

@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Livestream Roulette · YouTube trial</title>
+<style>
+  body { margin: 0; background: #08131c; color: #e4eef0; font: 1rem system-ui, sans-serif; }
+  #waiting { position: fixed; inset: 0; display: grid; align-content: end; justify-items: start; padding: 16px; }
+  #waiting[hidden] { display: none; }
+  #standbyPhoto { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+  #waitingInfo { position: relative; max-width: 28rem; padding: 10px 14px; border-radius: 8px; background: #08131cde; }
+  #waitingInfo p { margin: 4px 0; }
+  #playerArea { position: absolute; }
+  #playerArea iframe { width: 100%; height: 100%; border: 0; display: block; }
+  h1 { margin: 0; font-size: 1.3rem; }
+  a { color: #a4e0fa; }
+</style>
+<main id="playerArea" aria-label="Barn Owl Live YouTube player"></main>
+<section id="waiting">
+  <img id="standbyPhoto" src="https://barnowl.live/wp-content/uploads/2026/09/Free-Wildlife-Image-Barn-Owl-088.jpg" alt="Barn owl photographed by Barn Owl Live" referrerpolicy="no-referrer">
+  <div id="waitingInfo">
+    <h1>Barn Owl Live</h1>
+    <p id="trialStatus" role="status">Waiting for the Windows companion.</p>
+    <p><a href="https://barnowl.live/free/free-wildlife-images/" target="_blank" rel="noopener">Standby photo by Barn Owl Live</a></p>
+    <a href="https://www.youtube.com/watch?v=AorGWrn-vx8" target="_blank" rel="noopener">Watch on YouTube</a>
+  </div>
+</section>
+<script type="module" src="/youtube-trial.mjs"></script>
+</html>

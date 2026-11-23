@@ -1,6 +1,37 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { httpsUrl, isYouTube, liveWindow, inLiveWindow, canPlay } from '../stream-rules.mjs';
+import { httpsUrl, isYouTube, youtubeVideoId, liveWindow, inLiveWindow, canPlay, directPlaybackIsVisible, validCustomInterval, rotationDelayMs } from '../stream-rules.mjs';
+
+test('custom rotation accepts whole seconds and preserves minute presets', () => {
+  assert.equal(rotationDelayMs(30), 1800000);
+  assert.equal(rotationDelayMs('custom', 1), 1000);
+  assert.equal(rotationDelayMs('custom', 7200), 7200000);
+  for (const value of [0, -1, 1.5, 7201, '1', undefined]) {
+    assert.equal(validCustomInterval(value), false);
+    assert.equal(rotationDelayMs('custom', value), 1800000);
+  }
+});
+
+test('YouTube playlist entries are opt-in and use official video IDs', () => {
+  const id = 'AorGWrn-vx8';
+  for (const base of ['https://www.youtube.com/watch?v=', 'https://youtu.be/', 'https://www.youtube.com/live/']) {
+    assert.equal(youtubeVideoId(base + id), id);
+  }
+  assert.equal(youtubeVideoId('https://youtube.com.example.org/watch?v=' + id), null);
+  assert.equal(youtubeVideoId('https://www.youtube.com/channel/' + id), null);
+  const stream = { kind: 'youtube', collection: 'Wildlife', embed: 'https://youtu.be/' + id, original: 'https://example.org/owl' };
+  const settings = { enabled: ['Wildlife'], muted: true };
+  assert.equal(canPlay(stream, settings, true), false);
+  assert.equal(canPlay(stream, { ...settings, allowYouTube: true }, true), true);
+  assert.equal(canPlay(stream, { ...settings, allowYouTube: true }, false), false);
+});
+
+test('direct playback stays active at exactly half visible', () => {
+  assert.equal(directPlaybackIsVisible(0.51), true);
+  assert.equal(directPlaybackIsVisible(0.5), true);
+  assert.equal(directPlaybackIsVisible(0.49), false);
+  assert.equal(directPlaybackIsVisible(null), false);
+});
 
 test('requires HTTPS URLs without credentials', () => {
   for (const value of ['https://user:pass@example.org', 'http://example.org', 'javascript:alert(1)', null]) {

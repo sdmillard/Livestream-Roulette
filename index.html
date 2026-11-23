@@ -9,40 +9,160 @@
 *{box-sizing:border-box}body{margin:0;min-height:100vh}button,input,select{font:inherit}
 #stage{position:fixed;inset:0;background:radial-gradient(ellipse at 60% 30%,#15374a,#050c12 70%);display:grid;place-items:center}
 #player,#video{width:100%;height:100%;border:0;background:#07111b}
+#video{object-fit:cover}
+#lastFrame{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;pointer-events:none}
+#youtubeArea{position:absolute}
+#youtubeArea iframe{display:block;width:100%;height:100%;border:0}
+#youtubeStandby{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;pointer-events:none}
 .empty{text-align:center;max-width:38rem;padding:2rem;color:#c1d7dc;line-height:1.6}
 .empty h1{color:#fff;font-weight:550}
-.toolbar{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);display:flex;gap:8px;background:#07131de8;border:1px solid #38515b;border-radius:15px;padding:9px;align-items:center;box-shadow:0 8px 30px #0008}
+.toolbar{position:fixed;right:12px;bottom:12px}
+.menu-actions,.submenu{background:#081923f7;border:1px solid #38515b;border-radius:12px;box-shadow:0 8px 30px #0008}
+.menu-actions{position:absolute;right:0;bottom:calc(100% + 8px);width:148px;display:grid;gap:4px;padding:6px}
+.menu-actions button{text-align:left}
+.menu-actions button[aria-expanded="true"],.submenu button[aria-expanded="true"]{background:#315b57;border-color:#81cbeb}
 button{cursor:pointer;background:#173342;color:white;border:1px solid #456573;padding:9px 13px;border-radius:9px}
 button:hover{background:#285467}button:focus-visible,input:focus-visible,select:focus-visible,a:focus-visible{outline:3px solid #81cbeb;outline-offset:2px}
 button[aria-pressed="true"]{background:#315b57}
-.meta{position:fixed;top:18px;left:18px;max-width:min(80vw,480px);background:#07131de8;border:1px solid #38515b;border-radius:12px;padding:13px 17px}
-.meta h2{font-size:1rem;margin:0 0 5px}.meta p{font-size:.85rem;margin:0 0 7px;color:#c1d7dc}
-a{color:#a4e0fa}.meta a{margin-right:12px}
-aside{position:fixed;right:0;top:0;bottom:0;width:min(440px,100vw);overflow:auto;background:#081923f7;border-left:1px solid #47616b;padding:22px;box-shadow:-10px 0 40px #0008}
+.meta{position:fixed;top:12px;left:12px;max-width:calc(100% - 24px);display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 10px;background:#07131de8;border:1px solid #38515b;border-radius:8px;padding:5px 9px;font-size:.8rem;line-height:1.4;overflow-wrap:anywhere}
+.meta h2{font-size:inherit;margin:0}.meta p{margin:0;color:#c1d7dc}
+a{color:#a4e0fa}
+.submenu{position:fixed;right:168px;bottom:60px;width:min(400px,calc(100vw - 180px));max-height:calc(100dvh - 72px);overflow:auto;padding:14px}
+.playback{width:min(184px,calc(100vw - 180px));display:grid;gap:4px}
+.playback button{text-align:left}
+.settings-categories{width:148px;display:grid;gap:4px;padding:6px}
+.settings-categories button{text-align:left}
+.settings-detail{right:324px;width:min(400px,calc(100vw - 336px))}
+.settings-detail h2{font-size:1rem;margin:0}
+.camera-detail{right:360px;width:min(360px,calc(100vw - 372px))}
+.camera-detail a{display:inline-block;margin-right:8px}
 aside h2{margin:0 0 5px}aside p,small{color:#bac9ce;line-height:1.5}
 label{display:block;margin:14px 0 5px}input,select{width:100%;padding:10px;background:#0e2a39;color:#fff;border:1px solid #4b6571;border-radius:8px}
 input[type=checkbox]{width:auto;margin-right:8px}
 .row{display:flex;gap:8px;align-items:center}.row>*{flex:1}.row button{flex:0 0 auto}
+#controlCascade :is(button,input,select){outline-offset:-3px}
+.panel-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+.panel-actions button{max-width:100%;overflow-wrap:anywhere}
 fieldset{border:1px solid #42606b;border-radius:10px;margin-top:15px}
 fieldset label{margin:9px 0}
 .item{border-top:1px solid #304651;padding:12px 0}
 .item strong{display:block}.item small{display:block}.item .row{margin-top:8px}
 .note{font-size:.84rem}.error{color:#ffd6a8}
 [hidden]{display:none!important}
-body.wallpaper .toolbar,body.wallpaper aside{display:none}
-@media(max-width:600px){.toolbar{bottom:8px}.toolbar button{padding:8px}.meta{top:8px;left:8px}}
+.wallpaper{--taskbar-clearance:48px}
+.wallpaper .toolbar,.wallpaper .submenu{translate:0 calc(-1 * var(--taskbar-clearance))}
+.wallpaper #menu{width:36px;height:36px;padding:0;background:#07131d45;border-color:#ffffff38;color:#fff;text-shadow:0 1px 3px #000}
+.wallpaper #menu:hover,.wallpaper #menu:focus-visible,.wallpaper #menu[aria-expanded="true"]{background:#173342e8;border-color:#81cbeb}
+.wallpaper .menu-label{display:none}
+.controls #stage,.controls #meta,.controlled-wallpaper .toolbar,.controlled-wallpaper .submenu{display:none!important}
+.controls #menu{width:36px;height:36px;padding:0;background:#193341;border-color:#8ba6ae;color:#fff}
+.controls #menu:hover,.controls #menu:focus-visible,.controls #menu[aria-expanded="true"]{background:#285467;border-color:#81cbeb}
+.controls .menu-label{display:none}
+.controls .menu-actions,.controls .submenu{background:#0b1c26}
+#controlCascade{display:contents}
+@media(max-width:480px){.meta{top:auto;bottom:60px;left:8px;max-width:calc(100% - 16px)}}
+@media(max-width:540px){.menu-actions{width:max-content;grid-auto-flow:column}.menu-actions button{white-space:nowrap}.submenu{right:12px;bottom:146px;width:min(400px,calc(100vw - 24px));max-height:calc(100dvh - 158px)}.settings-categories{width:min(350px,calc(100vw - 24px));grid-template-columns:repeat(3,minmax(0,1fr))}.settings-categories button{padding:8px 4px;text-align:center}.settings-detail{bottom:206px;max-height:calc(100dvh - 218px)}}
+@media(max-width:540px){.playback{grid-template-columns:repeat(2,minmax(0,1fr));padding:8px}.playback button{padding:6px 8px}.camera-detail{bottom:282px;max-height:calc(100dvh - 294px)}}
+.wallpaper .submenu{max-height:calc(100dvh - 72px - var(--taskbar-clearance))}
+@media(max-width:540px){.wallpaper .submenu{max-height:calc(100dvh - 158px - var(--taskbar-clearance))}.wallpaper .settings-detail{max-height:calc(100dvh - 218px - var(--taskbar-clearance))}.wallpaper .camera-detail{max-height:calc(100dvh - 294px - var(--taskbar-clearance))}}
+.tray-controls #controlCascade{position:fixed;inset:12px 12px 8px;display:flex;flex-direction:row-reverse;align-items:flex-end;gap:4px;pointer-events:none}
+.tray-controls #menu{display:none}
+.tray-controls .toolbar,.tray-controls .menu-actions,.tray-controls .submenu{position:static;translate:none;pointer-events:auto}
+.tray-controls .toolbar{flex:none}
+.tray-controls .menu-actions,.tray-controls .settings-categories,.tray-controls .playback{width:132px;grid-auto-flow:row;grid-template-columns:minmax(0,1fr);padding:6px}
+.tray-controls .settings-categories,.tray-controls .playback{flex:none}
+.tray-controls .settings-categories button{text-align:left}
+.tray-controls .submenu{max-height:100%}
+.tray-controls .settings-detail{width:360px;min-width:0;overflow-wrap:anywhere}
+@media(max-width:480px){
+  .tray-controls #controlCascade{flex-direction:column-reverse}
+  .tray-controls .menu-actions,.tray-controls .settings-categories,.tray-controls .playback{width:auto;grid-auto-flow:column;grid-template-columns:none;grid-auto-columns:minmax(0,1fr)}
+  .tray-controls .playback{grid-auto-flow:row;grid-template-columns:repeat(2,minmax(0,1fr))}
+  .tray-controls .toolbar,.tray-controls .settings-categories,.tray-controls .playback,.tray-controls .settings-detail{width:min(360px,100%)}
+  .tray-controls .menu-actions button{white-space:normal}
+  .tray-controls .settings-detail{min-height:0}
+}
 </style>
 </head>
 <body>
-<main id="stage" aria-label="Livestream canvas"><div id="empty" class="empty"><h1>A window into the world.</h1><p>Add an authorized live source in Settings.</p><p id="emptyStatus" role="status"></p></div><iframe id="player" title="Selected livestream" allow="autoplay; fullscreen; picture-in-picture; encrypted-media" referrerpolicy="strict-origin-when-cross-origin" hidden></iframe><video id="video" playsinline controls muted hidden></video></main>
-<section id="meta" class="meta" hidden aria-live="polite"><h2 id="title"></h2><p id="institution"></p><a id="original" target="_blank" rel="noopener noreferrer" hidden>Watch original</a><a id="donation" target="_blank" rel="noopener noreferrer" hidden>Support source</a><p id="status" class="note"></p></section>
-<nav class="toolbar" aria-label="Playback controls"><button id="previous" title="Previous camera">← Back</button><button id="next" title="Next camera">Next →</button><button id="hold" aria-pressed="false" title="Stop automatic rotation">Stay here</button><button id="info" aria-pressed="false">Info</button><button id="settings" aria-expanded="false" aria-controls="panel">⚙ Settings</button></nav>
-<aside id="panel" hidden aria-label="Settings">
-<div class="row"><h2>Livestream Roulette</h2><button id="close" aria-label="Close settings">✕</button></div>
-<p>Browser prototype · Local-first · No account or telemetry</p>
-<label for="interval">Rotate every</label><select id="interval"><option value="15">15 minutes</option><option value="30">30 minutes</option><option value="60">60 minutes</option><option value="120">120 minutes</option></select>
+<main id="stage" aria-label="Livestream canvas"><div id="empty" class="empty"><h1>A window into the world.</h1><p id="sourceHint">Add an authorized live source in Settings.</p><p id="emptyStatus" role="status"></p></div><iframe id="player" title="Selected livestream" allow="autoplay; fullscreen; picture-in-picture; encrypted-media" referrerpolicy="strict-origin-when-cross-origin" hidden></iframe><video id="video" playsinline controls muted hidden></video><canvas id="lastFrame" width="0" height="0" role="img" aria-label="Last rendered camera frame" hidden></canvas></main>
+<div id="youtubeArea"></div>
+<img id="youtubeStandby" alt="Standby photo by Barn Owl Live" referrerpolicy="no-referrer" hidden>
+<section id="meta" class="meta" hidden aria-live="polite"><h2 id="title"></h2><p id="institution"></p><a id="original" target="_blank" rel="noopener noreferrer" hidden>Watch original</a><a id="donation" target="_blank" rel="noopener noreferrer" hidden>Support source</a></section>
+<div id="controlCascade">
+<nav class="toolbar" aria-label="Playback controls">
+<div id="menuActions" class="menu-actions" hidden>
+<button id="playback" aria-expanded="false" aria-controls="playbackPanel">‹ Playback</button>
+<button id="settings" aria-expanded="false" aria-controls="panel">‹ Settings</button>
+<button id="dismissControls" hidden>Close menu</button>
+</div>
+<button id="menu" aria-label="Menu" aria-expanded="false" aria-controls="menuActions">⚙<span class="menu-label"> Menu</span></button>
+</nav>
+<section id="playbackPanel" class="submenu playback" hidden aria-label="Playback">
+<button id="previous" title="Previous camera">← Back</button>
+<button id="next" title="Next camera">Next →</button>
+<button id="hold" aria-pressed="false" title="Stop automatic rotation">Stay here</button>
+<button id="info" aria-expanded="false" aria-controls="cameraDetails">‹ Camera info</button>
+<button id="quickPlaylistCategory" aria-expanded="false" aria-controls="quickPlaylistPanel">‹ Playlist</button>
+</section>
+<aside id="quickPlaylistPanel" class="submenu settings-detail camera-detail" hidden aria-labelledby="quickPlaylistHeading">
+<h2 id="quickPlaylistHeading">Playlist</h2>
+<label for="quickPlaylist">Play from</label><select id="quickPlaylist"></select>
+</aside>
+<aside id="cameraDetails" class="submenu settings-detail camera-detail" hidden aria-labelledby="cameraDetailsHeading">
+<h2 id="cameraDetailsHeading" tabindex="-1">Camera info</h2>
+<p id="noCamera">No camera selected.</p>
+<div id="cameraDetailsContent" hidden>
+<p><strong id="detailTitle"></strong><br><span id="detailInstitution"></span></p>
+<a id="detailOriginal" target="_blank" rel="noopener noreferrer" hidden>Watch original</a>
+<a id="detailDonation" target="_blank" rel="noopener noreferrer" hidden>Support source</a>
+<p id="status" class="note" role="status"></p>
+</div>
+</aside>
+<section id="panel" class="submenu settings-categories" hidden aria-label="Settings">
+<button id="rotationCategory" aria-expanded="false" aria-controls="rotationSettings">‹ Rotation</button>
+<button id="displayCategory" aria-expanded="false" aria-controls="displaySettings">‹ Display</button>
+<button id="camerasCategory" aria-expanded="false" aria-controls="cameraSettings">‹ Cameras</button>
+<button id="playlistsCategory" aria-expanded="false" aria-controls="playlistSettings">‹ Playlists</button>
+</section>
+<aside id="playlistSettings" class="submenu settings-detail" hidden aria-labelledby="playlistHeading">
+<h2 id="playlistHeading">Playlists</h2>
+<label for="activePlaylist">Play from</label><select id="activePlaylist"></select>
+<div class="panel-actions"><button id="newPlaylist" type="button">New playlist</button></div>
+<form id="playlistForm" hidden>
+<label for="playlistName">Playlist name</label><input id="playlistName" maxlength="80" required>
+<fieldset id="playlistCameras"><legend>Cameras in playlist</legend></fieldset>
+<div class="panel-actions">
+<button type="submit">Save playlist</button>
+<button type="button" id="deletePlaylist">Delete playlist</button>
+</div>
+</form>
+<div class="panel-actions">
+<button id="exportLibrary" type="button">Export library</button>
+<button id="importLibrary" type="button">Import library</button>
+</div>
+<input id="libraryFile" type="file" accept=".json,application/json" hidden>
+<p id="libraryMessage" class="note" role="status"></p>
+</aside>
+<aside id="rotationSettings" class="submenu settings-detail" hidden aria-labelledby="rotationHeading">
+<h2 id="rotationHeading">Rotation</h2>
+<label for="interval">Rotate every</label><select id="interval"><option value="15">15 minutes</option><option value="30">30 minutes</option><option value="60">60 minutes</option><option value="120">120 minutes</option><option value="custom">Custom</option></select>
+<div id="customRotation" hidden>
+<label for="customIntervalSeconds">Seconds per camera</label><input id="customIntervalSeconds" type="number" min="1" max="7200" step="1" inputmode="numeric" required>
+<p id="rotationMessage" class="note" role="status"></p>
+</div>
+</aside>
+<aside id="displaySettings" class="submenu settings-detail" hidden aria-labelledby="displayHeading">
+<h2 id="displayHeading">Display</h2>
 <label><input id="startMuted" type="checkbox" checked> Require muted playback</label>
 <label><input id="showInfo" type="checkbox"> Show camera info overlay</label>
+</aside>
+<aside id="cameraSettings" class="submenu settings-detail" hidden aria-labelledby="cameraHeading">
+<h2 id="cameraHeading">Cameras</h2>
+<div id="youtubeSetting" hidden>
+<label><input id="allowYouTube" type="checkbox"> Include YouTube sources</label>
+<p class="note">YouTube can start after the tray menu closes and more than half of the player is visible.</p>
+</div>
 <fieldset><legend>Collections</legend><label><input type="checkbox" id="wildlife" checked> Wildlife</label><label><input type="checkbox" id="space" checked> Space</label><label><input type="checkbox" id="nature" checked> Nature</label><label><input type="checkbox" id="other" checked> Other</label></fieldset>
 <h3>Your permitted cameras</h3>
 <p class="note">Use publisher-authorized sources. Direct video supports muting and player errors. Generic embeds require audio opt-in and are available in browser mode only.</p>
@@ -50,8 +170,8 @@ body.wallpaper .toolbar,body.wallpaper aside{display:none}
 <label for="newTitle">Camera title</label><input id="newTitle" required maxlength="100" placeholder="e.g. Live reef camera">
 <label for="newInstitution">Organization</label><input id="newInstitution" required maxlength="100" placeholder="Official broadcaster">
 <label for="newCollection">Collection</label><select id="newCollection"><option>Wildlife</option><option>Space</option><option>Nature</option><option>Other</option></select>
-<label for="newKind">Player type</label><select id="newKind"><option value="video">Direct browser-compatible video</option><option value="iframe">Generic iframe</option></select>
-<label for="newEmbed">HTTPS player or media URL</label><input id="newEmbed" type="url" required>
+<label for="newKind">Player type</label><select id="newKind"><option value="video">Direct browser-compatible video</option><option value="iframe">Generic iframe</option><option value="youtube" disabled>YouTube official player</option></select>
+<label for="newEmbed">HTTPS player or media URL</label><input id="newEmbed" type="url" required placeholder="Direct .mp4, .webm, or .m3u8 URL">
 <fieldset><legend>Daily live hours (optional)</legend>
 <label for="timezone">Camera time zone</label><input id="timezone" placeholder="America/Los_Angeles">
 <label for="liveStart">Live from</label><input id="liveStart" type="time">
@@ -60,7 +180,8 @@ body.wallpaper .toolbar,body.wallpaper aside{display:none}
 <label for="newOriginal">Official viewing page</label><input id="newOriginal" type="url" required placeholder="https://official.example/camera">
 <label for="newDonation">Official donation page (optional)</label><input id="newDonation" type="url" placeholder="https://official.example/donate">
 <label><input id="permission" type="checkbox" required> The publisher permits this source in my intended playback mode.</label>
-<button type="submit">Add camera</button><p id="formMessage" class="note" role="status"></p>
+<div class="panel-actions"><button type="submit">Add camera</button></div>
+<p id="formMessage" class="note" role="status"></p>
 </form>
 <div id="sources" aria-live="polite"></div>
 <h3>Official camera discovery</h3>
@@ -69,43 +190,251 @@ body.wallpaper .toolbar,body.wallpaper aside{display:none}
 <p><a href="https://www.montereybayaquarium.org/cams-videos/live-cams/jelly-cam" target="_blank" rel="noopener noreferrer">Monterey Bay Aquarium — Jelly Cam</a></p>
 <p class="note">Some official streams substitute prerecorded footage outside live hours. Published live hours help avoid scheduled replays.</p>
 </aside>
+</div>
 <script type="module">
-import { httpsUrl as https, isYouTube, liveWindow, canPlay } from './stream-rules.mjs';
+import { httpsUrl as https, isYouTube, youtubeVideoId, liveWindow, canPlay, directPlaybackIsVisible, validCustomInterval, rotationDelayMs } from './stream-rules.mjs';
+import { connectCompanion, reportControlBounds } from './companion.mjs';
+import { createYouTubePlayer } from './youtube-player.mjs';
+import { backupLimit, exportLibrary, importLibrary } from './library-backup.mjs';
 (()=>{
 const KEY='livestream-roulette-v1';
-const defaults={interval:30,muted:true,showInfo:false,enabled:['Wildlife','Space','Nature','Other'],streams:[]};
+const defaults={interval:30,customIntervalSeconds:30,muted:true,showInfo:false,allowYouTube:false,enabled:['Wildlife','Space','Nature','Other'],streams:[],playlists:[],activePlaylist:null};
 const $=id=>document.getElementById(id);
-let state;try{const data=JSON.parse(localStorage.getItem(KEY)||'{}');state={...defaults,...data};if(!Array.isArray(state.streams))state.streams=[];if(!Array.isArray(state.enabled))state.enabled=[...defaults.enabled]}catch{state={...defaults}}
-const wallpaper = new URLSearchParams(location.search).get('wallpaper') === '1';
-const failed = new Set();
+function readSettings(data) {
+  const settings = { ...defaults, ...data };
+  if (!Array.isArray(settings.streams)) settings.streams = [];
+  if (!Array.isArray(settings.enabled)) settings.enabled = [...defaults.enabled];
+  const cameraIds = new Set(settings.streams.filter(Boolean).map(stream => stream.id));
+  settings.playlists = Array.isArray(settings.playlists) ? settings.playlists
+    .filter(list => typeof list?.id === 'string' && typeof list.name === 'string' && Array.isArray(list.cameraIds))
+    .map(list => ({ ...list, cameraIds: [...new Set(list.cameraIds.filter(id => cameraIds.has(id)))] })) : [];
+  if (!settings.playlists.some(list => list.id === settings.activePlaylist)) settings.activePlaylist = null;
+  if (![15, 30, 60, 120, 'custom'].includes(settings.interval)) settings.interval = defaults.interval;
+  if (!validCustomInterval(settings.customIntervalSeconds)) settings.customIntervalSeconds = defaults.customIntervalSeconds;
+  return settings;
+}
+const query = new URLSearchParams(location.search);
+const wallpaper = query.get('wallpaper') === '1';
+const controls = query.get('controls') === '1';
+const trayControls = controls && query.get('tray') === '1' && Boolean(window.chrome?.webview);
+const controlledWallpaper = wallpaper && query.get('companion') === '1';
+let state = readSettings();
+if (!controls && !controlledWallpaper) {
+  try { state = readSettings(JSON.parse(localStorage.getItem(KEY))); } catch {}
+}
+document.body.classList.toggle('wallpaper', wallpaper);
+document.body.classList.toggle('controls', controls);
+document.body.classList.toggle('tray-controls', trayControls);
+document.body.classList.toggle('controlled-wallpaper', controlledWallpaper);
+if (controlledWallpaper) $('sourceHint').textContent = 'Open Livestream Roulette in the Windows system tray to add a source.';
+const failed = new Map();
+const stallTimeout = 15000;
+let recoveryAttempt = false;
+let retryHeldId;
+let lastProgressTime = 0;
+let lastMediaTime = 0;
+let healthySince = 0;
+let autoplayBlocked = false;
 let current=null,history=[],index=-1,timer=null,hold=false;
 let playbackStatus = '';
-const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(state))}catch(e){$('formMessage').textContent='Storage unavailable: changes may be temporary.'}};
+let mediaGeneration = 0;
+let hlsPlayer;
+let hlsLibrary;
+let bufferingTimer;
+let companion;
+let desktopViewable = !controlledWallpaper;
+let videoHasPlayed = false;
+let youtubeSample;
+let youtubeMounted = false;
+const barnOwlPhoto = 'https://barnowl.live/wp-content/uploads/2026/09/Free-Wildlife-Image-Barn-Owl-088.jpg';
+const youtube = controlledWallpaper ? createYouTubePlayer({
+  stage: $('youtubeArea'),
+  onMounted(mounted) {
+    youtubeMounted = mounted;
+    lastProgressTime = 0;
+    display();
+  },
+  onStatus(message) {
+    if (current?.kind !== 'youtube' || playbackStatus === message) return;
+    playbackStatus = message;
+    $('emptyStatus').textContent = message;
+    display();
+    schedule();
+  },
+  onFailure() {
+    if (current?.kind !== 'youtube') return;
+    recoverPlayback();
+  }
+}) : null;
+function save() {
+  if (controls) return companion.save(state);
+  try {
+    localStorage.setItem(KEY, JSON.stringify(state));
+    return true;
+  } catch {
+    $('formMessage').textContent = 'Storage unavailable: changes may be temporary.';
+    return false;
+  }
+}
 function eligible() {
   const now = new Date();
-  return state.streams.filter(s => s && !failed.has(s.id) && canPlay(s, state, wallpaper, now));
+  const playlist = state.playlists.find(list => list.id === state.activePlaylist);
+  return state.streams.filter(s => s && !(failed.get(s.id) > now.getTime())
+    && (!playlist || playlist.cameraIds.includes(s.id))
+    && (s.kind !== 'youtube' || controls || controlledWallpaper)
+    && canPlay(s, state, wallpaper || controls, now));
 }
-function drawList(){const pool=eligible();const root=$('sources');root.replaceChildren();const heading=document.createElement('h3');heading.textContent='Saved cameras ('+state.streams.length+')';root.append(heading);for(const s of state.streams.filter(Boolean)){const entry=document.createElement('div');entry.className='item';const name=document.createElement('strong');name.textContent=s.title;const desc=document.createElement('small');desc.textContent=s.institution+' · '+s.collection;const row=document.createElement('div');row.className='row';const play=document.createElement('button');play.textContent='Play';play.disabled=!pool.includes(s);play.onclick=()=>{if(eligible().includes(s))playStream(s,true)};const remove=document.createElement('button');remove.textContent='Remove';remove.onclick=()=>{state.streams=state.streams.filter(x=>x.id!==s.id);save();drawList();refreshEligibility();schedule();};row.append(play,remove);entry.append(name,desc,row);root.append(entry)}}
-function display(){const player=$('player'),empty=$('empty');player.hidden=!current || current.kind==='video';$('video').hidden=!current || current.kind!=='video';empty.hidden=!!current;$('meta').hidden=!current || !state.showInfo;$('info').setAttribute('aria-pressed',String(state.showInfo));if(!current)return;$('title').textContent=current.title;$('institution').textContent=current.institution+' · '+current.collection;for(const [id,url] of [['original',current.original],['donation',current.donation]]){const a=$(id),u=https(url);a.hidden=!u;if(u)a.href=u;else a.removeAttribute('href')}$('status').textContent=playbackStatus;}
+function drawList(){const pool=eligible();const root=$('sources');root.replaceChildren();const heading=document.createElement('h3');heading.textContent='Saved cameras ('+state.streams.length+')';root.append(heading);for(const s of state.streams.filter(Boolean)){const entry=document.createElement('div');entry.className='item';const name=document.createElement('strong');name.textContent=s.title;const desc=document.createElement('small');desc.textContent=s.institution+' · '+s.collection;const row=document.createElement('div');row.className='row';const play=document.createElement('button');play.textContent='Play';play.disabled=!pool.includes(s);play.onclick=()=>{if(eligible().includes(s))playStream(s,true)};const remove=document.createElement('button');remove.textContent='Remove';remove.onclick=()=>{state.streams=state.streams.filter(x=>x.id!==s.id);for(const list of state.playlists)list.cameraIds=list.cameraIds.filter(id=>id!==s.id);save();drawPlaylists();drawList();refreshEligibility();schedule();};row.append(play,remove);entry.append(name,desc,row);root.append(entry)}}
+function display() {
+  if (controlledWallpaper) publishStatus();
+  const isYouTubeSource = current?.kind === 'youtube';
+  const showing = current && desktopViewable && !isYouTubeSource;
+  const hasStill = $('lastFrame').width > 0;
+  const showOwlPhoto = isYouTubeSource && !youtubeMounted && !controls
+    && youtubeVideoId(current.embed) === 'AorGWrn-vx8';
+  const standby = $('youtubeStandby');
+  if (showOwlPhoto && !standby.hasAttribute('src')) standby.src = barnOwlPhoto;
+  standby.hidden = !showOwlPhoto;
+  $('player').hidden = !showing || current.kind === 'video';
+  $('video').hidden = !showing || current.kind !== 'video';
+  $('lastFrame').hidden = !hasStill;
+  $('empty').hidden = Boolean(showing) || hasStill || youtubeMounted || showOwlPhoto;
+  $('meta').hidden = !showing || hasStill || !state.showInfo;
+  $('noCamera').hidden = Boolean(current);
+  $('cameraDetailsContent').hidden = !current;
+  if (!current) return;
+
+  const institution = current.institution + ' · ' + current.collection;
+  $('title').textContent = $('detailTitle').textContent = current.title;
+  $('institution').textContent = $('detailInstitution').textContent = institution;
+  for (const [ids, rawUrl] of [
+    [['original', 'detailOriginal'], current.original],
+    [['donation', 'detailDonation'], current.donation]
+  ]) {
+    const url = https(rawUrl);
+    for (const id of ids) {
+      const link = $(id);
+      link.hidden = !url;
+      if (url) link.href = url;
+      else link.removeAttribute('href');
+    }
+  }
+  $('status').textContent = playbackStatus;
+}
+
+function rememberFrame() {
+  const video = $('video');
+  if (video.readyState < HTMLMediaElement.HAVE_CURRENT_DATA || !video.videoWidth || !video.videoHeight) return;
+  const canvas = $('lastFrame');
+  // Draw directly to the visible canvas. It stays in memory and no pixels are read back.
+  try {
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    const context = canvas.getContext('2d');
+    if (!context) throw new Error('Canvas context unavailable');
+    context.drawImage(video, 0, 0);
+  } catch {
+    canvas.width = 0;
+  }
+}
 function schedule() {
   clearTimeout(timer);
-  if (!document.hidden && !hold && current && eligible().length > 1) {
-    timer = setTimeout(pickNext, state.interval * 60000);
+  if (controls || !current || document.hidden || hold || eligible().length < 2) return;
+  if (current.kind === 'youtube' ? !youtubeMounted : !desktopViewable) return;
+  const delay = rotationDelayMs(state.interval, state.customIntervalSeconds);
+  const waitingForPlayback = current.kind === 'youtube'
+    ? !playbackStatus.startsWith('Playing') : current.kind === 'video' && !videoHasPlayed;
+  timer = setTimeout(pickNext, waitingForPlayback ? Math.max(delay, 15000) : delay);
+}
+
+function loadHls() {
+  if (!hlsLibrary) {
+    hlsLibrary = new Promise((resolve, reject) => {
+      const script = document.createElement('script');
+      script.src = 'https://cdn.jsdelivr.net/npm/hls.js@1.6.15/dist/hls.min.js';
+      script.integrity = 'sha384-iZBI1/lW9u8FcBjxuQ8nPTsU7TXhZNtzkV8H3gQHSTgz+VYQoKWqGlBHqhO84alJ';
+      script.crossOrigin = 'anonymous';
+      script.onload = () => resolve(window.Hls);
+      script.onerror = () => {
+        script.remove();
+        hlsLibrary = undefined;
+        reject(new Error('Could not load the HLS player.'));
+      };
+      document.head.append(script);
+    });
+  }
+  return hlsLibrary;
+}
+
+function recoverPlayback() {
+  if (!current || document.hidden || !desktopViewable) return;
+  const stream = current;
+  if (stream.kind === 'video' && videoHasPlayed) rememberFrame();
+  if (!recoveryAttempt) {
+    playStream(stream, false, true);
+    return;
+  }
+  failed.set(stream.id, Date.now() + 60000);
+  if (hold) retryHeldId = stream.id;
+  drawList();
+  if (hold) playStream(null, false);
+  else pickNext();
+}
+
+function checkPlaybackProgress() {
+  const video = $('video');
+  const now = performance.now();
+  const advancing = current?.kind === 'video' && videoHasPlayed && !video.paused && video.currentTime !== lastMediaTime;
+  const playingYouTube = current?.kind === 'youtube' && youtubeMounted && playbackStatus.startsWith('Playing');
+  if (!document.hidden && desktopViewable && (advancing || playingYouTube)) {
+    if (!healthySince) healthySince = now;
+    if (now - healthySince >= stallTimeout) recoveryAttempt = false;
+  } else {
+    healthySince = 0;
+  }
+  const watchingVideo = current?.kind === 'video' && !autoplayBlocked && (!videoHasPlayed || !video.paused);
+  const watchingYouTube = current?.kind === 'youtube' && youtubeMounted
+    && !/^(Paused|Playing|YouTube autoplay)/.test(playbackStatus);
+  if (controls || document.hidden || !desktopViewable || (!watchingVideo && !watchingYouTube)) {
+    lastProgressTime = 0;
+    return;
+  }
+  if (!lastProgressTime || (watchingVideo && video.currentTime !== lastMediaTime)) {
+    lastProgressTime = now;
+    lastMediaTime = video.currentTime;
+  } else if (now - lastProgressTime >= stallTimeout) {
+    recoverPlayback();
   }
 }
 
-function playStream(stream, record) {
+function playStream(stream, record, retry = false) {
+  if (controls) {
+    if (stream) companion.command('play', stream.id);
+    return;
+  }
   const video = $('video');
   const player = $('player');
-  video.onended = video.onerror = video.onplaying = null;
+  const generation = ++mediaGeneration;
+  recoveryAttempt = retry;
+  lastProgressTime = lastMediaTime = healthySince = 0;
+  autoplayBlocked = false;
+  if (stream && !retry) retryHeldId = undefined;
+  videoHasPlayed = false;
+  youtube?.update(null, youtubeSample);
+  clearTimeout(bufferingTimer);
+  video.onended = video.onerror = video.onplaying = video.onwaiting = null;
+  hlsPlayer?.destroy();
+  hlsPlayer = undefined;
   video.pause();
   video.removeAttribute('src');
   video.load();
   player.removeAttribute('src');
   current = stream;
   if (!stream) {
+    if (!failed.size) $('lastFrame').width = 0;
+    playbackStatus = '';
     $('emptyStatus').textContent = failed.size
-      ? 'Playback failed or ended. Use Next to retry.'
+      ? 'Playback is unavailable. Retrying shortly.'
       : 'No cameras are eligible for the current settings and live hours.';
     display();
     schedule();
@@ -116,22 +445,85 @@ function playStream(stream, record) {
     history.push(stream.id);
     index = history.length - 1;
   }
+  if (stream.kind === 'youtube') {
+    $('lastFrame').width = 0;
+    playbackStatus = 'Waiting for the YouTube player';
+    $('emptyStatus').textContent = playbackStatus;
+    updateYouTube();
+    display();
+    schedule();
+    return;
+  }
+  if (!desktopViewable) {
+    const waiting = 'Waiting for at least half the desktop to be visible';
+    playbackStatus = $('lastFrame').width > 0 ? 'Paused · Showing last frame' : 'Paused · ' + waiting;
+    $('emptyStatus').textContent = waiting;
+    display();
+    schedule();
+    return;
+  }
   if (stream.kind === 'video') {
     playbackStatus = 'Press Play if autoplay is blocked. Live status unverified.';
     video.defaultMuted = state.muted;
     video.muted = state.muted;
-    video.onended = video.onerror = () => {
-      failed.add(stream.id);
-      drawList();
-      if (hold) playStream(null, false);
-      else pickNext();
+    function failedPlayback() {
+      if (generation !== mediaGeneration) return;
+      recoverPlayback();
+    }
+    function startVideo() {
+      video.play().catch(error => {
+        if (generation === mediaGeneration && error.name === 'NotAllowedError') autoplayBlocked = true;
+      });
+    }
+    video.onended = video.onerror = failedPlayback;
+    video.onwaiting = () => {
+      if (!desktopViewable || video.paused) return;
+      clearTimeout(bufferingTimer);
+      bufferingTimer = setTimeout(() => {
+        if (generation !== mediaGeneration || !desktopViewable || video.paused) return;
+        playbackStatus = 'Buffering · Waiting for the feed';
+        display();
+      }, 1000);
     };
     video.onplaying = () => {
+      clearTimeout(bufferingTimer);
+      if (!desktopViewable) return;
+      const started = !videoHasPlayed;
+      videoHasPlayed = true;
+      autoplayBlocked = false;
       playbackStatus = 'Playing · Live status unverified';
+      const still = $('lastFrame');
+      if (still.width > 0 && video.requestVideoFrameCallback) {
+        video.requestVideoFrameCallback(() => {
+          if (generation !== mediaGeneration) return;
+          still.width = 0;
+          display();
+        });
+      } else {
+        still.width = 0;
+      }
       display();
+      if (started) schedule();
     };
-    video.src = stream.embed;
-    video.play().catch(() => {});
+    const isHls = new URL(stream.embed).pathname.toLowerCase().endsWith('.m3u8');
+    if (isHls && !video.canPlayType('application/vnd.apple.mpegurl')) {
+      loadHls().then(Hls => {
+        if (generation !== mediaGeneration) return;
+        if (!Hls?.isSupported()) return failedPlayback();
+        hlsPlayer = new Hls();
+        hlsPlayer.on(Hls.Events.ERROR, (_, error) => {
+          if (error.fatal) failedPlayback();
+        });
+        hlsPlayer.on(Hls.Events.MANIFEST_PARSED, () => {
+          if (generation === mediaGeneration && desktopViewable) startVideo();
+        });
+        hlsPlayer.loadSource(stream.embed);
+        hlsPlayer.attachMedia(video);
+      }).catch(failedPlayback);
+    } else {
+      video.src = stream.embed;
+      startVideo();
+    }
   } else {
     playbackStatus = 'Live status and playback errors are unobservable in this player.';
     player.src = stream.embed;
@@ -152,21 +544,243 @@ function previous() {
 }
 function retryNext() {
   failed.clear();
+  retryHeldId = undefined;
   drawList();
   pickNext();
 }
-$('next').onclick=retryNext;$('previous').onclick=previous;
-$('hold').onclick=()=>{hold=!hold;$('hold').setAttribute('aria-pressed',String(hold));$('hold').textContent=hold?'Resume rotation':'Stay here';refreshEligibility();schedule()};
-$('info').onclick=()=>{state.showInfo=!state.showInfo;$('showInfo').checked=state.showInfo;save();display()};
-function panel(open){$('panel').hidden=!open;$('settings').setAttribute('aria-expanded',String(open))}
-$('settings').onclick=()=>panel($('panel').hidden);$('close').onclick=()=>panel(false);
-$('interval').value=String(state.interval);$('interval').onchange=()=>{state.interval=Number($('interval').value);save();schedule()};
+function drawHold() {
+  $('hold').setAttribute('aria-pressed', String(hold));
+  $('hold').textContent = hold ? 'Resume rotation' : 'Stay here';
+}
+function toggleHold() {
+  hold = !hold;
+  drawHold();
+  refreshEligibility();
+  schedule();
+  if (controlledWallpaper) publishStatus();
+}
+const actions = { next: retryNext, previous, hold: toggleHold };
+function runAction(action) {
+  if (controls) companion.command(action);
+  else actions[action]();
+}
+for (const action of Object.keys(actions)) $(action).onclick = () => runAction(action);
+const branches = {
+  playback: 'playbackPanel',
+  settings: 'panel'
+};
+let activeBranch = null;
+const categories = {
+  info: 'cameraDetails',
+  quickPlaylistCategory: 'quickPlaylistPanel',
+  rotationCategory: 'rotationSettings',
+  displayCategory: 'displaySettings',
+  camerasCategory: 'cameraSettings',
+  playlistsCategory: 'playlistSettings'
+};
+let activeCategory = null;
+function openCategory(category, restoreFocus = true) {
+  const previous = activeCategory;
+  activeCategory = category;
+  for (const [id, panel] of Object.entries(categories)) {
+    $(panel).hidden = id !== category;
+    $(id).setAttribute('aria-expanded', String(id === category));
+  }
+  if (category) $(categories[category]).querySelector('[tabindex], input, select').focus();
+  else if (previous && restoreFocus) $(previous).focus();
+}
+function openBranch(branch, restoreFocus = true) {
+  openCategory(null, false);
+  const previous = activeBranch;
+  activeBranch = branch;
+  for (const [id, panel] of Object.entries(branches)) {
+    $(panel).hidden = id !== branch;
+    $(id).setAttribute('aria-expanded', String(id === branch));
+  }
+  if (branch) $(branches[branch]).querySelector('button, select').focus();
+  else if (previous && restoreFocus) $(previous).focus();
+}
+function menu(open, restoreFocus = true) {
+  if (!open) openBranch(null, false);
+  $('menuActions').hidden = !open;
+  $('menu').setAttribute('aria-expanded', String(open));
+  if (open) $('playback').focus();
+  else if (restoreFocus) $('menu').focus();
+}
+$('menu').onclick = () => menu($('menuActions').hidden);
+for (const id of Object.keys(branches)) {
+  $(id).onclick = () => openBranch(activeBranch === id ? null : id);
+}
+for (const id of Object.keys(categories)) {
+  $(id).onclick = () => openCategory(activeCategory === id ? null : id);
+}
+
+let editingNewPlaylist = false;
+function drawPlaylists() {
+  for (const id of ['activePlaylist', 'quickPlaylist']) {
+    const selector = $(id);
+    selector.replaceChildren(new Option('All cameras', ''));
+    for (const list of state.playlists) selector.add(new Option(list.name, list.id));
+    selector.value = state.activePlaylist ?? '';
+  }
+  const list = editingNewPlaylist ? null : state.playlists.find(item => item.id === state.activePlaylist);
+  $('playlistForm').hidden = !editingNewPlaylist && !list;
+  $('deletePlaylist').hidden = !list;
+  $('playlistName').value = list?.name ?? '';
+  const cameras = $('playlistCameras');
+  cameras.replaceChildren(cameras.querySelector('legend'));
+  for (const stream of state.streams.filter(Boolean)) {
+    const label = document.createElement('label');
+    const checkbox = document.createElement('input');
+    checkbox.type = 'checkbox';
+    checkbox.value = stream.id;
+    checkbox.checked = list?.cameraIds.includes(stream.id) ?? false;
+    label.append(checkbox, ' ' + stream.title);
+    cameras.append(label);
+  }
+}
+
+function changePlaylist(id) {
+  const changed = state.activePlaylist !== id;
+  state.activePlaylist = id;
+  editingNewPlaylist = false;
+  save();
+  drawPlaylists();
+  drawList();
+  refreshEligibility(changed);
+}
+
+$('activePlaylist').onchange = () => changePlaylist($('activePlaylist').value || null);
+$('quickPlaylist').onchange = () => changePlaylist($('quickPlaylist').value || null);
+$('newPlaylist').onclick = () => {
+  editingNewPlaylist = true;
+  drawPlaylists();
+  $('playlistName').focus();
+};
+$('playlistForm').onsubmit = event => {
+  event.preventDefault();
+  const name = $('playlistName').value.trim();
+  if (!name) return;
+  const cameraIds = [...$('playlistCameras').querySelectorAll('input:checked')].map(input => input.value);
+  const id = editingNewPlaylist ? crypto.randomUUID() : state.activePlaylist;
+  const updated = { id, name, cameraIds };
+  if (editingNewPlaylist) state.playlists.push(updated);
+  else state.playlists = state.playlists.map(list => list.id === id ? updated : list);
+  changePlaylist(id);
+  $('activePlaylist').focus();
+};
+$('deletePlaylist').onclick = () => {
+  state.playlists = state.playlists.filter(list => list.id !== state.activePlaylist);
+  changePlaylist(null);
+  $('activePlaylist').focus();
+};
+drawPlaylists();
+
+const libraryMessage = $('libraryMessage');
+async function restoreLibrary(text) {
+  try {
+    const merged = importLibrary(text, state);
+    const cameras = merged.streams.length - state.streams.length;
+    const playlists = merged.playlists.length - state.playlists.length;
+    state = merged;
+    const saved = save();
+    drawPlaylists();
+    drawList();
+    refreshEligibility();
+    libraryMessage.textContent = await saved
+      ? `Added ${cameras} camera${cameras === 1 ? '' : 's'} and ${playlists} playlist${playlists === 1 ? '' : 's'}.`
+      : 'Could not save the imported library.';
+  } catch (error) {
+    libraryMessage.textContent = error instanceof SyntaxError ? 'This file is not valid JSON.' : error.message;
+  }
+}
+$('exportLibrary').onclick = () => {
+  libraryMessage.textContent = '';
+  try {
+    const text = exportLibrary(state);
+    if (trayControls) {
+      window.chrome.webview.postMessage('export-library:' + text);
+      return;
+    }
+    const url = URL.createObjectURL(new Blob([text], { type: 'application/json' }));
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'livestream-roulette-library.json';
+    link.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  } catch (error) {
+    libraryMessage.textContent = error.message;
+  }
+};
+$('importLibrary').onclick = () => {
+  libraryMessage.textContent = '';
+  if (trayControls) window.chrome.webview.postMessage('import-library');
+  else $('libraryFile').click();
+};
+$('libraryFile').onchange = async event => {
+  const input = event.target;
+  const file = input.files[0];
+  input.value = '';
+  if (!file) return;
+  if (file.size > backupLimit) {
+    libraryMessage.textContent = 'This library backup is too large.';
+    return;
+  }
+  try { restoreLibrary(await file.text()); }
+  catch { libraryMessage.textContent = 'Could not read this backup.'; }
+};
+
+function drawRotationSettings() {
+  $('interval').value = String(state.interval);
+  $('customIntervalSeconds').value = String(state.customIntervalSeconds);
+  $('customRotation').hidden = state.interval !== 'custom';
+}
+drawRotationSettings();
+$('interval').onchange = () => {
+  const value = $('interval').value;
+  state.interval = value === 'custom' ? value : Number(value);
+  $('rotationMessage').textContent = '';
+  drawRotationSettings();
+  save();
+  schedule();
+};
+$('customIntervalSeconds').onchange = () => {
+  const seconds = $('customIntervalSeconds').valueAsNumber;
+  if (!validCustomInterval(seconds)) {
+    $('rotationMessage').textContent = 'Enter a whole number from 1 to 7,200.';
+    drawRotationSettings();
+    return;
+  }
+  state.customIntervalSeconds = seconds;
+  $('rotationMessage').textContent = '';
+  save();
+  schedule();
+};
 $('startMuted').checked=state.muted;$('startMuted').onchange=()=>{state.muted=$('startMuted').checked;save();$('video').defaultMuted=state.muted;$('video').muted=state.muted;refreshEligibility();schedule()};
+$('allowYouTube').checked = state.allowYouTube === true;
+$('allowYouTube').onchange = () => {
+  state.allowYouTube = $('allowYouTube').checked;
+  save();
+  refreshEligibility();
+  schedule();
+};
 $('showInfo').checked=state.showInfo;$('showInfo').onchange=()=>{state.showInfo=$('showInfo').checked;save();display()};
 for(const col of ['Wildlife','Space','Nature','Other']){const el=$(col.toLowerCase());el.checked=state.enabled.includes(col);el.onchange=()=>{state.enabled=['Wildlife','Space','Nature','Other'].filter(c=>$(c.toLowerCase()).checked);save();refreshEligibility();schedule()}}
 $('addForm').onsubmit=e=>{e.preventDefault();const embed=https($('newEmbed').value),original=https($('newOriginal').value),donation=$('newDonation').value?https($('newDonation').value):null;
  if(!embed||!original||($('newDonation').value&&!donation)){$('formMessage').textContent='All supplied URLs must use HTTPS.';return}
- if(isYouTube(embed)){$('formMessage').textContent='Use the official YouTube watch page separately.';return}
+ const kind = $('newKind').value;
+ if(kind === 'youtube' && !youtubeVideoId(embed)) {
+   $('formMessage').textContent = 'Enter an official YouTube video URL.';
+   return;
+ }
+ if(kind !== 'youtube' && isYouTube(embed)) {
+   $('formMessage').textContent = 'Choose YouTube official player for YouTube URLs.';
+   return;
+ }
+ if((controls || wallpaper) && kind === 'iframe') {
+   $('formMessage').textContent = 'Wallpaper sources need a direct video URL.';
+   return;
+ }
  let schedule;
  try {
    schedule = liveWindow($('timezone').value.trim(), $('liveStart').value, $('liveEnd').value);
@@ -174,12 +788,28 @@ $('addForm').onsubmit=e=>{e.preventDefault();const embed=https($('newEmbed').val
    $('formMessage').textContent='Enter a valid IANA time zone and two different live times.';
    return;
  }
- const s={kind:$('newKind').value,schedule,id:crypto.randomUUID?.()||String(Date.now())+Math.random(),title:$('newTitle').value.trim(),institution:$('newInstitution').value.trim(),collection:$('newCollection').value,embed,original,donation};
+ const s={kind,schedule,id:crypto.randomUUID?.()||String(Date.now())+Math.random(),title:$('newTitle').value.trim(),institution:$('newInstitution').value.trim(),collection:$('newCollection').value,embed,original,donation};
  if(!s.title||!s.institution)return;
- state.streams.push(s);save();drawList();$('addForm').reset();$('formMessage').textContent='Camera saved locally. Playback and liveness are not verified.';refreshEligibility();schedule()};
-window.addEventListener('keydown',e=>{if(e.target.closest('input,select,textarea'))return;if(e.key==='ArrowRight')retryNext();if(e.key==='ArrowLeft')previous();if(e.key==='Escape')panel(false)});
+ state.streams.push(s);save();drawPlaylists();drawList();$('addForm').reset();$('formMessage').textContent='Camera saved locally. Playback and liveness are not verified.';refreshEligibility();schedule()};
+window.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    if (activeCategory) openCategory(null);
+    else if (activeBranch) openBranch(null);
+    else if (!$('menuActions').hidden) {
+      menu(false, !trayControls);
+      if (trayControls) window.chrome.webview.postMessage('close-controls');
+    }
+    return;
+  }
+  if (e.target.closest('input,select,textarea')) return;
+  if (e.key === 'ArrowRight') runAction('next');
+  if (e.key === 'ArrowLeft') runAction('previous');
+});
 let lastPool = '';
-function refreshEligibility() {
+function refreshEligibility(chooseWhileHeld = false) {
+  for (const [id, until] of failed) {
+    if (Date.now() >= until) failed.delete(id);
+  }
   const pool = eligible();
   const signature = JSON.stringify(pool.map(stream => stream.id));
   if (lastPool !== signature) {
@@ -187,11 +817,16 @@ function refreshEligibility() {
     drawList();
     schedule();
   }
+  if (controls) return;
   if (current && !pool.includes(current)) {
-    if (hold) playStream(null, false);
+    if (hold && !chooseWhileHeld) playStream(null, false);
     else pickNext();
-  } else if (!current && !hold && pool.length) {
-    pickNext();
+  } else if (!current && pool.length) {
+    if (!hold || chooseWhileHeld) pickNext();
+    else {
+      const stream = pool.find(candidate => candidate.id === retryHeldId);
+      if (stream) playStream(stream, false);
+    }
   }
 }
 document.addEventListener('visibilitychange', () => {
@@ -202,9 +837,138 @@ document.addEventListener('visibilitychange', () => {
   }
 });
 setInterval(refreshEligibility, 15000);
-if(wallpaper)document.body.classList.add('wallpaper');
+if (!controls) setInterval(checkPlaybackProgress, 1000);
 drawList();
-pickNext();
+function applySharedSettings(data) {
+  const settings = readSettings(data);
+  if (JSON.stringify(state) === JSON.stringify(settings)) return;
+  const changedPlaylist = state.activePlaylist !== settings.activePlaylist;
+  const replacement = settings.streams.find(stream => current && stream?.id === current.id
+    && stream.embed === current.embed && stream.kind === current.kind);
+  if (replacement) current = replacement;
+  state = settings;
+  drawPlaylists();
+  drawRotationSettings();
+  $('startMuted').checked = $('video').defaultMuted = $('video').muted = state.muted;
+  $('allowYouTube').checked = state.allowYouTube === true;
+  $('showInfo').checked = state.showInfo;
+  for (const col of defaults.enabled) $(col.toLowerCase()).checked = state.enabled.includes(col);
+  drawList();
+  refreshEligibility(changedPlaylist);
+  updateYouTube();
+  display();
+  schedule();
+}
+
+let lastStatus;
+function publishStatus() {
+  const status = { id: current?.id ?? null, playback: playbackStatus, hold };
+  const signature = JSON.stringify(status);
+  if (!companion || signature === lastStatus) return;
+  lastStatus = signature;
+  companion.status(status).catch(() => {
+    if (lastStatus === signature) lastStatus = undefined;
+  });
+}
+function updateYouTube() {
+  const id = current?.kind === 'youtube' ? youtubeVideoId(current.embed) : null;
+  youtube?.update(id, youtubeSample, state.muted);
+}
+
+function updateDesktopVisibility(fraction, sample) {
+  youtubeSample = sample;
+  const viewable = directPlaybackIsVisible(fraction);
+  if (current?.kind === 'youtube') {
+    desktopViewable = viewable;
+    updateYouTube();
+    return;
+  }
+  if (desktopViewable === viewable) return;
+  if (!viewable) rememberFrame();
+  desktopViewable = viewable;
+  if (!current) {
+    refreshEligibility();
+    return;
+  }
+  if (!eligible().includes(current)) {
+    refreshEligibility();
+    return;
+  }
+  if (!hlsPlayer) {
+    playStream(current, false);
+    return;
+  }
+
+  const video = $('video');
+  clearTimeout(bufferingTimer);
+  if (viewable) {
+    playbackStatus = 'Resuming live feed';
+    const livePosition = hlsPlayer.liveSyncPosition;
+    if (Number.isFinite(livePosition) && livePosition - video.currentTime > 6) {
+      video.currentTime = livePosition;
+    }
+    hlsPlayer.startLoad(-1);
+    video.play().catch(() => {});
+  } else {
+    video.pause();
+    videoHasPlayed = false;
+    hlsPlayer.stopLoad();
+    const waiting = 'Waiting for at least half the desktop to be visible';
+    playbackStatus = $('lastFrame').width > 0 ? 'Paused · Showing last frame' : 'Paused · ' + waiting;
+    $('emptyStatus').textContent = waiting;
+  }
+  display();
+  schedule();
+}
+if (controls || controlledWallpaper) {
+  companion = connectCompanion(controls ? 'controls' : 'wallpaper', {
+    settings: applySharedSettings,
+    visibility: updateDesktopVisibility,
+    command({ action, id }) {
+      if (action === 'play') {
+        const stream = eligible().find(candidate => candidate.id === id);
+        if (stream) playStream(stream, true);
+      } else actions[action]?.();
+    },
+    status(status) {
+      const stream = state.streams.find(candidate => candidate?.id === status?.id) ?? null;
+      const playback = status?.playback ?? '';
+      const held = Boolean(status?.hold);
+      if (current === stream && playbackStatus === playback && hold === held) return;
+      current = stream;
+      playbackStatus = playback;
+      hold = held;
+      drawHold();
+      display();
+    },
+    connected(newSession) {
+      if (newSession) lastStatus = undefined;
+      publishStatus();
+    },
+    error(message) {
+      if (message) $('formMessage').textContent = message;
+    }
+  });
+  if (controls) {
+    $('newKind').querySelector('[value="iframe"]').disabled = true;
+    $('newKind').querySelector('[value="youtube"]').disabled = false;
+    $('youtubeSetting').hidden = false;
+    reportControlBounds();
+    if (trayControls) {
+      $('dismissControls').hidden = false;
+      $('dismissControls').onclick = () => {
+        menu(false, false);
+        window.chrome.webview.postMessage('close-controls');
+      };
+    }
+    window.chrome?.webview?.addEventListener('message', event => {
+      if (event.data?.type === 'library-import') restoreLibrary(event.data.text);
+      if (event.data?.type === 'library-message') libraryMessage.textContent = event.data.text;
+      if (event.data === 'expand' && trayControls) menu(true);
+      if (event.data === 'collapse' && !$('menuActions').hidden) menu(false, false);
+    });
+  }
+} else pickNext();
 })();
 </script>
 </body></html>
