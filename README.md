@@ -19,10 +19,11 @@ Check [source permissions and Wallpaper Engine compatibility](docs/VALIDATION.md
 
 The companion puts a Livestream Roulette icon in the Windows notification area. Click it to open the translucent cascading menus above the taskbar. The popover closes when it loses focus. The companion shares settings with Wallpaper Engine over a loopback-only service.
 
-1. Run `python companion_server.py` from the repository root and leave it running.
-2. Run `powershell.exe -NoProfile -STA -ExecutionPolicy RemoteSigned -File .\windows\Start-Controls.ps1` from a second terminal. This uses Windows PowerShell 5.1 and the installed Edge WebView2 Runtime. On first run it downloads Microsoft's WebView2 SDK from NuGet.
-3. In Wallpaper Engine, select **Open Wallpaper → Open from URL**. Enter `http://127.0.0.1:8768/?wallpaper=1&companion=1` and enable **Use Livestream Mode**.
-4. Click **Livestream Roulette** near the clock. It may appear under **Show hidden icons**. Add a publisher-authorized direct source under **Settings → Cameras**. A direct HLS source can use an HTTPS `.m3u8` URL if its server allows cross-origin playlist and segment requests. The native control and wallpaper read the shared settings from the local service. The settings file is stored in `%LOCALAPPDATA%/Livestream Roulette/settings.json`.
+1. Double-click **Start Livestream Roulette.cmd** in the repository root. It starts or reuses the local server and tray controls. The launcher needs Python on PATH, Windows PowerShell 5.1, and Edge WebView2 Runtime. On first run the tray helper downloads Microsoft's WebView2 SDK from NuGet.
+2. In Wallpaper Engine, select **Open Wallpaper → Open from URL**. Enter `http://127.0.0.1:8768/?wallpaper=1&companion=1` and enable **Use Livestream Mode**.
+3. Click **Livestream Roulette** near the clock. It may appear under **Show hidden icons**. Add a publisher-authorized direct source under **Settings → Cameras**. A direct HLS source can use an HTTPS `.m3u8` URL if its server allows cross-origin playlist and segment requests. The native control and wallpaper read the shared settings from the local service. The settings file is stored in `%LOCALAPPDATA%/Livestream Roulette/settings.json`.
+
+Use the launcher whenever you want to start the companion, including after signing in to Windows. If you select **Exit** in the tray, the server stays available. Once the icon has disappeared, wait a few seconds before relaunching so the last desktop visibility report can expire. Startup logs are in `%LOCALAPPDATA%/Livestream Roulette/Logs/8768`.
 
 To diagnose the connection, open `http://127.0.0.1:8768/?controls=1` in a regular browser. It uses the same settings and playback controls. Keep one control surface open while editing the camera list.
 
