@@ -14,6 +14,17 @@ export function isYouTube(value) {
   );
 }
 
+export function youtubeVideoId(value) {
+  const url = httpsUrl(value);
+  if (!url || !isYouTube(url)) return null;
+  const parsed = new URL(url);
+  const [first, second] = parsed.pathname.split('/').filter(Boolean);
+  const id = parsed.hostname === 'youtu.be' ? first
+    : first === 'watch' ? parsed.searchParams.get('v')
+    : ['embed', 'live', 'shorts'].includes(first) ? second : null;
+  return /^[A-Za-z0-9_-]{11}$/.test(id ?? '') ? id : null;
+}
+
 export function liveWindow(timezone, start, end) {
   if (!timezone && !start && !end) return null;
   const time = /^(?:[01]\d|2[0-3]):[0-5]\d$/;
@@ -43,6 +54,10 @@ export function inLiveWindow(schedule, now = new Date()) {
 export function canPlay(stream, settings, wallpaper, now) {
   if (!stream || !settings.enabled.includes(stream.collection)) return false;
   const url = httpsUrl(stream.embed);
+  if (stream.kind === 'youtube') {
+    return Boolean(wallpaper && settings.allowYouTube === true && youtubeVideoId(url)
+      && httpsUrl(stream.original) && inLiveWindow(stream.schedule, now));
+  }
   return Boolean(url && httpsUrl(stream.original) && !isYouTube(url)
     && (stream.kind === 'video' || (!settings.muted && !wallpaper))
     && inLiveWindow(stream.schedule, now));

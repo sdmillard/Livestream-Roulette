@@ -22,7 +22,7 @@ export function connectCompanion(mode, handlers) {
     try {
       const previousRevision = revision;
       const session = await request('session');
-      if (mode === 'wallpaper') handlers.visibility(session.visibility);
+      if (mode === 'wallpaper') handlers.visibility(session.visibility, session);
       if (pending === 0 && previousRevision === revision) handlers.settings(session.settings);
       if (mode === 'controls') {
         handlers.status(session.status);

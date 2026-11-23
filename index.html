@@ -11,6 +11,9 @@
 #player,#video{width:100%;height:100%;border:0;background:#07111b}
 #video{object-fit:cover}
 #lastFrame{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;pointer-events:none}
+#youtubeArea{position:absolute}
+#youtubeArea iframe{display:block;width:100%;height:100%;border:0}
+#youtubeStandby{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;pointer-events:none}
 .empty{text-align:center;max-width:38rem;padding:2rem;color:#c1d7dc;line-height:1.6}
 .empty h1{color:#fff;font-weight:550}
 .toolbar{position:fixed;right:12px;bottom:12px}
@@ -65,6 +68,8 @@ fieldset label{margin:9px 0}
 </head>
 <body>
 <main id="stage" aria-label="Livestream canvas"><div id="empty" class="empty"><h1>A window into the world.</h1><p id="sourceHint">Add an authorized live source in Settings.</p><p id="emptyStatus" role="status"></p></div><iframe id="player" title="Selected livestream" allow="autoplay; fullscreen; picture-in-picture; encrypted-media" referrerpolicy="strict-origin-when-cross-origin" hidden></iframe><video id="video" playsinline controls muted hidden></video><canvas id="lastFrame" width="0" height="0" role="img" aria-label="Last rendered camera frame" hidden></canvas></main>
+<div id="youtubeArea"></div>
+<img id="youtubeStandby" alt="Standby photo by Barn Owl Live" referrerpolicy="no-referrer" hidden>
 <section id="meta" class="meta" hidden aria-live="polite"><h2 id="title"></h2><p id="institution"></p><a id="original" target="_blank" rel="noopener noreferrer" hidden>Watch original</a><a id="donation" target="_blank" rel="noopener noreferrer" hidden>Support source</a></section>
 <nav class="toolbar" aria-label="Playback controls">
 <div id="menuActions" class="menu-actions" hidden>
@@ -106,6 +111,10 @@ fieldset label{margin:9px 0}
 </aside>
 <aside id="cameraSettings" class="submenu settings-detail" hidden aria-labelledby="cameraHeading">
 <h2 id="cameraHeading">Cameras</h2>
+<div id="youtubeSetting" hidden>
+<label><input id="allowYouTube" type="checkbox"> Include YouTube sources</label>
+<p class="note">YouTube can start after the tray menu closes and more than half of the player is visible.</p>
+</div>
 <fieldset><legend>Collections</legend><label><input type="checkbox" id="wildlife" checked> Wildlife</label><label><input type="checkbox" id="space" checked> Space</label><label><input type="checkbox" id="nature" checked> Nature</label><label><input type="checkbox" id="other" checked> Other</label></fieldset>
 <h3>Your permitted cameras</h3>
 <p class="note">Use publisher-authorized sources. Direct video supports muting and player errors. Generic embeds require audio opt-in and are available in browser mode only.</p>
@@ -113,7 +122,7 @@ fieldset label{margin:9px 0}
 <label for="newTitle">Camera title</label><input id="newTitle" required maxlength="100" placeholder="e.g. Live reef camera">
 <label for="newInstitution">Organization</label><input id="newInstitution" required maxlength="100" placeholder="Official broadcaster">
 <label for="newCollection">Collection</label><select id="newCollection"><option>Wildlife</option><option>Space</option><option>Nature</option><option>Other</option></select>
-<label for="newKind">Player type</label><select id="newKind"><option value="video">Direct browser-compatible video</option><option value="iframe">Generic iframe</option></select>
+<label for="newKind">Player type</label><select id="newKind"><option value="video">Direct browser-compatible video</option><option value="iframe">Generic iframe</option><option value="youtube" disabled>YouTube official player</option></select>
 <label for="newEmbed">HTTPS player or media URL</label><input id="newEmbed" type="url" required placeholder="Direct .mp4, .webm, or .m3u8 URL">
 <fieldset><legend>Daily live hours (optional)</legend>
 <label for="timezone">Camera time zone</label><input id="timezone" placeholder="America/Los_Angeles">
@@ -133,11 +142,12 @@ fieldset label{margin:9px 0}
 <p class="note">Some official streams substitute prerecorded footage outside live hours. Published live hours help avoid scheduled replays.</p>
 </aside>
 <script type="module">
-import { httpsUrl as https, isYouTube, liveWindow, canPlay, directPlaybackIsVisible } from './stream-rules.mjs';
+import { httpsUrl as https, isYouTube, youtubeVideoId, liveWindow, canPlay, directPlaybackIsVisible } from './stream-rules.mjs';
 import { connectCompanion, reportControlBounds } from './companion.mjs';
+import { createYouTubePlayer } from './youtube-player.mjs';
 (()=>{
 const KEY='livestream-roulette-v1';
-const defaults={interval:30,muted:true,showInfo:false,enabled:['Wildlife','Space','Nature','Other'],streams:[]};
+const defaults={interval:30,muted:true,showInfo:false,allowYouTube:false,enabled:['Wildlife','Space','Nature','Other'],streams:[]};
 const $=id=>document.getElementById(id);
 function readSettings(data) {
   const settings = { ...defaults, ...data };
@@ -169,6 +179,30 @@ let hlsLibrary;
 let bufferingTimer;
 let companion;
 let desktopViewable = !controlledWallpaper;
+let youtubeSample;
+let youtubeMounted = false;
+const barnOwlPhoto = 'https://barnowl.live/wp-content/uploads/2026/09/Free-Wildlife-Image-Barn-Owl-088.jpg';
+const youtube = controlledWallpaper ? createYouTubePlayer({
+  stage: $('youtubeArea'),
+  onMounted(mounted) {
+    youtubeMounted = mounted;
+    display();
+  },
+  onStatus(message) {
+    if (current?.kind !== 'youtube' || playbackStatus === message) return;
+    playbackStatus = message;
+    $('emptyStatus').textContent = message;
+    display();
+    schedule();
+  },
+  onFailure() {
+    if (current?.kind !== 'youtube') return;
+    failed.add(current.id);
+    drawList();
+    if (hold) playStream(null, false);
+    else pickNext();
+  }
+}) : null;
 function save() {
   if (controls) companion.save(state);
   else {
@@ -178,17 +212,25 @@ function save() {
 }
 function eligible() {
   const now = new Date();
-  return state.streams.filter(s => s && !failed.has(s.id) && canPlay(s, state, wallpaper || controls, now));
+  return state.streams.filter(s => s && !failed.has(s.id)
+    && (s.kind !== 'youtube' || controls || controlledWallpaper)
+    && canPlay(s, state, wallpaper || controls, now));
 }
 function drawList(){const pool=eligible();const root=$('sources');root.replaceChildren();const heading=document.createElement('h3');heading.textContent='Saved cameras ('+state.streams.length+')';root.append(heading);for(const s of state.streams.filter(Boolean)){const entry=document.createElement('div');entry.className='item';const name=document.createElement('strong');name.textContent=s.title;const desc=document.createElement('small');desc.textContent=s.institution+' · '+s.collection;const row=document.createElement('div');row.className='row';const play=document.createElement('button');play.textContent='Play';play.disabled=!pool.includes(s);play.onclick=()=>{if(eligible().includes(s))playStream(s,true)};const remove=document.createElement('button');remove.textContent='Remove';remove.onclick=()=>{state.streams=state.streams.filter(x=>x.id!==s.id);save();drawList();refreshEligibility();schedule();};row.append(play,remove);entry.append(name,desc,row);root.append(entry)}}
 function display() {
   if (controlledWallpaper) publishStatus();
-  const showing = current && desktopViewable;
+  const isYouTubeSource = current?.kind === 'youtube';
+  const showing = current && desktopViewable && !isYouTubeSource;
   const hasStill = $('lastFrame').width > 0;
+  const showOwlPhoto = isYouTubeSource && !youtubeMounted && !controls
+    && youtubeVideoId(current.embed) === 'AorGWrn-vx8';
+  const standby = $('youtubeStandby');
+  if (showOwlPhoto && !standby.hasAttribute('src')) standby.src = barnOwlPhoto;
+  standby.hidden = !showOwlPhoto;
   $('player').hidden = !showing || current.kind === 'video';
   $('video').hidden = !showing || current.kind !== 'video';
   $('lastFrame').hidden = !hasStill;
-  $('empty').hidden = Boolean(showing) || hasStill;
+  $('empty').hidden = Boolean(showing) || hasStill || youtubeMounted || showOwlPhoto;
   $('meta').hidden = !showing || hasStill || !state.showInfo;
   $('noCamera').hidden = Boolean(current);
   $('cameraDetailsContent').hidden = !current;
@@ -229,7 +271,9 @@ function rememberFrame() {
 }
 function schedule() {
   clearTimeout(timer);
-  if (!controls && desktopViewable && !document.hidden && !hold && current && eligible().length > 1) {
+  const playing = current?.kind === 'youtube'
+    ? youtubeMounted && playbackStatus.startsWith('Playing') : desktopViewable;
+  if (!controls && playing && !document.hidden && !hold && current && eligible().length > 1) {
     timer = setTimeout(pickNext, state.interval * 60000);
   }
 }
@@ -261,6 +305,7 @@ function playStream(stream, record) {
   const video = $('video');
   const player = $('player');
   const generation = ++mediaGeneration;
+  youtube?.update(null, youtubeSample);
   clearTimeout(bufferingTimer);
   video.onended = video.onerror = video.onplaying = video.onwaiting = null;
   hlsPlayer?.destroy();
@@ -284,6 +329,15 @@ function playStream(stream, record) {
     history = history.slice(0, index + 1);
     history.push(stream.id);
     index = history.length - 1;
+  }
+  if (stream.kind === 'youtube') {
+    $('lastFrame').width = 0;
+    playbackStatus = 'Waiting for the YouTube player';
+    $('emptyStatus').textContent = playbackStatus;
+    updateYouTube();
+    display();
+    schedule();
+    return;
   }
   if (!desktopViewable) {
     const waiting = 'Waiting for at least half the desktop to be visible';
@@ -438,12 +492,27 @@ for (const id of Object.keys(categories)) {
 }
 $('interval').value=String(state.interval);$('interval').onchange=()=>{state.interval=Number($('interval').value);save();schedule()};
 $('startMuted').checked=state.muted;$('startMuted').onchange=()=>{state.muted=$('startMuted').checked;save();$('video').defaultMuted=state.muted;$('video').muted=state.muted;refreshEligibility();schedule()};
+$('allowYouTube').checked = state.allowYouTube === true;
+$('allowYouTube').onchange = () => {
+  state.allowYouTube = $('allowYouTube').checked;
+  save();
+  refreshEligibility();
+  schedule();
+};
 $('showInfo').checked=state.showInfo;$('showInfo').onchange=()=>{state.showInfo=$('showInfo').checked;save();display()};
 for(const col of ['Wildlife','Space','Nature','Other']){const el=$(col.toLowerCase());el.checked=state.enabled.includes(col);el.onchange=()=>{state.enabled=['Wildlife','Space','Nature','Other'].filter(c=>$(c.toLowerCase()).checked);save();refreshEligibility();schedule()}}
 $('addForm').onsubmit=e=>{e.preventDefault();const embed=https($('newEmbed').value),original=https($('newOriginal').value),donation=$('newDonation').value?https($('newDonation').value):null;
  if(!embed||!original||($('newDonation').value&&!donation)){$('formMessage').textContent='All supplied URLs must use HTTPS.';return}
- if(isYouTube(embed)){$('formMessage').textContent='Use the official YouTube watch page separately.';return}
- if((controls || wallpaper) && $('newKind').value !== 'video') {
+ const kind = $('newKind').value;
+ if(kind === 'youtube' && !youtubeVideoId(embed)) {
+   $('formMessage').textContent = 'Enter an official YouTube video URL.';
+   return;
+ }
+ if(kind !== 'youtube' && isYouTube(embed)) {
+   $('formMessage').textContent = 'Choose YouTube official player for YouTube URLs.';
+   return;
+ }
+ if((controls || wallpaper) && kind === 'iframe') {
    $('formMessage').textContent = 'Wallpaper sources need a direct video URL.';
    return;
  }
@@ -454,7 +523,7 @@ $('addForm').onsubmit=e=>{e.preventDefault();const embed=https($('newEmbed').val
    $('formMessage').textContent='Enter a valid IANA time zone and two different live times.';
    return;
  }
- const s={kind:$('newKind').value,schedule,id:crypto.randomUUID?.()||String(Date.now())+Math.random(),title:$('newTitle').value.trim(),institution:$('newInstitution').value.trim(),collection:$('newCollection').value,embed,original,donation};
+ const s={kind,schedule,id:crypto.randomUUID?.()||String(Date.now())+Math.random(),title:$('newTitle').value.trim(),institution:$('newInstitution').value.trim(),collection:$('newCollection').value,embed,original,donation};
  if(!s.title||!s.institution)return;
  state.streams.push(s);save();drawList();$('addForm').reset();$('formMessage').textContent='Camera saved locally. Playback and liveness are not verified.';refreshEligibility();schedule()};
 window.addEventListener('keydown', e => {
@@ -506,10 +575,12 @@ function applySharedSettings(data) {
   state = settings;
   $('interval').value = String(state.interval);
   $('startMuted').checked = $('video').defaultMuted = $('video').muted = state.muted;
+  $('allowYouTube').checked = state.allowYouTube === true;
   $('showInfo').checked = state.showInfo;
   for (const col of defaults.enabled) $(col.toLowerCase()).checked = state.enabled.includes(col);
   drawList();
   refreshEligibility();
+  updateYouTube();
   display();
   schedule();
 }
@@ -524,8 +595,19 @@ function publishStatus() {
     if (lastStatus === signature) lastStatus = undefined;
   });
 }
-function updateDesktopVisibility(fraction) {
+function updateYouTube() {
+  const id = current?.kind === 'youtube' ? youtubeVideoId(current.embed) : null;
+  youtube?.update(id, youtubeSample, state.muted);
+}
+
+function updateDesktopVisibility(fraction, sample) {
+  youtubeSample = sample;
   const viewable = directPlaybackIsVisible(fraction);
+  if (current?.kind === 'youtube') {
+    desktopViewable = viewable;
+    updateYouTube();
+    return;
+  }
   if (desktopViewable === viewable) return;
   if (!viewable) rememberFrame();
   desktopViewable = viewable;
@@ -593,6 +675,8 @@ if (controls || controlledWallpaper) {
   });
   if (controls) {
     $('newKind').querySelector('[value="iframe"]').disabled = true;
+    $('newKind').querySelector('[value="youtube"]').disabled = false;
+    $('youtubeSetting').hidden = false;
     reportControlBounds();
     if (trayControls) {
       $('dismissControls').hidden = false;

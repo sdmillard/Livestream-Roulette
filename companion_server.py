@@ -18,6 +18,7 @@ ASSETS = {
     "/companion.mjs": ("companion.mjs", "text/javascript; charset=utf-8"),
     "/youtube-trial.html": ("youtube-trial.html", "text/html; charset=utf-8"),
     "/youtube-trial.mjs": ("youtube-trial.mjs", "text/javascript; charset=utf-8"),
+    "/youtube-player.mjs": ("youtube-player.mjs", "text/javascript; charset=utf-8"),
 }
 ACTIONS = {"next", "previous", "hold", "play"}
 

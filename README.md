@@ -28,9 +28,13 @@ To diagnose the connection, open `http://127.0.0.1:8768/?controls=1` in a regula
 
 Companion mode plays direct media while at least half of the primary desktop's working area is visible. When coverage exceeds half, it keeps the last available video frame on screen and stops fetching the stream. HLS resumes through the existing player when possible. Other direct video reconnects to the same camera. The still stays in memory, and playback waits for a fresh Windows coverage sample.
 
-### Barn Owl Live YouTube trial
+### Optional YouTube sources
 
-With the Windows companion running, open `http://127.0.0.1:8768/youtube-trial.html` in Wallpaper Engine URL Livestream Mode. This separate test wallpaper uses the official YouTube player across the desktop working area. It starts muted when more than half of the player area is visible. The tray waits for the player iframe to be removed before showing the popover. While the player is absent, the wallpaper shows a [publisher-supplied Barn Owl Live photo](https://barnowl.live/free/free-wildlife-images/). The player can return after the popover closes. Switch back to **Livestream Roulette Companion** in Wallpaper Engine to use the direct-feed playlist and its last-frame behavior.
+In the tray, open **Settings → Cameras** and turn on **Include YouTube sources**. Add an embeddable YouTube video using **YouTube official player** and its watch URL. YouTube is off by default. Turning it off excludes saved YouTube sources from **Next** and automatic rotation.
+
+The official player starts when more than half of the player area is visible and the tray popover is closed. The tray waits for the iframe to be removed before showing the popover. When available, a publisher-provided standby photo fills the wallpaper while a YouTube player is absent. Wallpaper Engine's URL Livestream Mode still limits interaction with the player's built-in controls when desktop icons are visible.
+
+The separate Barn Owl Live trial remains at `http://127.0.0.1:8768/youtube-trial.html`. The regular **Livestream Roulette Companion** wallpaper uses the shared playlist.
 
 ## Run tests
 

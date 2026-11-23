@@ -1,6 +1,20 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { httpsUrl, isYouTube, liveWindow, inLiveWindow, canPlay, directPlaybackIsVisible } from '../stream-rules.mjs';
+import { httpsUrl, isYouTube, youtubeVideoId, liveWindow, inLiveWindow, canPlay, directPlaybackIsVisible } from '../stream-rules.mjs';
+
+test('YouTube playlist entries are opt-in and use official video IDs', () => {
+  const id = 'AorGWrn-vx8';
+  for (const base of ['https://www.youtube.com/watch?v=', 'https://youtu.be/', 'https://www.youtube.com/live/']) {
+    assert.equal(youtubeVideoId(base + id), id);
+  }
+  assert.equal(youtubeVideoId('https://youtube.com.example.org/watch?v=' + id), null);
+  assert.equal(youtubeVideoId('https://www.youtube.com/channel/' + id), null);
+  const stream = { kind: 'youtube', collection: 'Wildlife', embed: 'https://youtu.be/' + id, original: 'https://example.org/owl' };
+  const settings = { enabled: ['Wildlife'], muted: true };
+  assert.equal(canPlay(stream, settings, true), false);
+  assert.equal(canPlay(stream, { ...settings, allowYouTube: true }, true), true);
+  assert.equal(canPlay(stream, { ...settings, allowYouTube: true }, false), false);
+});
 
 test('direct playback stays active at exactly half visible', () => {
   assert.equal(directPlaybackIsVisible(0.51), true);
