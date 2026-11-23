@@ -172,15 +172,17 @@ fieldset label{margin:9px 0}
 <label for="newCollection">Collection</label><select id="newCollection"><option>Wildlife</option><option>Space</option><option>Nature</option><option>Other</option></select>
 <label for="newKind">Player type</label><select id="newKind"><option value="video">Direct browser-compatible video</option><option value="iframe">Generic iframe</option><option value="youtube" disabled>YouTube official player</option></select>
 <label for="newEmbed">HTTPS player or media URL</label><input id="newEmbed" type="url" required placeholder="Direct .mp4, .webm, or .m3u8 URL">
-<fieldset><legend>Daily live hours (optional)</legend>
+<fieldset><legend>Live hours (optional)</legend>
 <label for="timezone">Camera time zone</label><input id="timezone" placeholder="America/Los_Angeles">
+<label for="liveRepeat">Repeats</label><select id="liveRepeat"><option value="daily">Every day</option><option value="hourly">Every hour (uses the minutes only)</option></select>
 <label for="liveStart">Live from</label><input id="liveStart" type="time">
 <label for="liveEnd">Live until</label><input id="liveEnd" type="time">
+<p class="note">For a camera that is on for the first five minutes of every hour, choose Every hour, from 00:00 until 00:05.</p>
 </fieldset>
 <label for="newOriginal">Official viewing page</label><input id="newOriginal" type="url" required placeholder="https://official.example/camera">
 <label for="newDonation">Official donation page (optional)</label><input id="newDonation" type="url" placeholder="https://official.example/donate">
 <label><input id="permission" type="checkbox" required> The publisher permits this source in my intended playback mode.</label>
-<div class="panel-actions"><button type="submit">Add camera</button></div>
+<div class="panel-actions"><button id="addSubmit" type="submit">Add camera</button><button id="cancelEdit" type="button" hidden>Cancel editing</button></div>
 <p id="formMessage" class="note" role="status"></p>
 </form>
 <div id="sources" aria-live="polite"></div>
@@ -284,7 +286,43 @@ function eligible() {
     && (s.kind !== 'youtube' || controls || controlledWallpaper)
     && canPlay(s, state, wallpaper || controls, now));
 }
-function drawList(){const pool=eligible();const root=$('sources');root.replaceChildren();const heading=document.createElement('h3');heading.textContent='Saved cameras ('+state.streams.length+')';root.append(heading);for(const s of state.streams.filter(Boolean)){const entry=document.createElement('div');entry.className='item';const name=document.createElement('strong');name.textContent=s.title;const desc=document.createElement('small');desc.textContent=s.institution+' · '+s.collection;const row=document.createElement('div');row.className='row';const play=document.createElement('button');play.textContent='Play';play.disabled=!pool.includes(s);play.onclick=()=>{if(eligible().includes(s))playStream(s,true)};const remove=document.createElement('button');remove.textContent='Remove';remove.onclick=()=>{state.streams=state.streams.filter(x=>x.id!==s.id);for(const list of state.playlists)list.cameraIds=list.cameraIds.filter(id=>id!==s.id);save();drawPlaylists();drawList();refreshEligibility();schedule();};row.append(play,remove);entry.append(name,desc,row);root.append(entry)}}
+let editingId = null;
+function editCamera(camera) {
+  editingId = camera.id;
+  $('newTitle').value = camera.title ?? '';
+  $('newInstitution').value = camera.institution ?? '';
+  $('newCollection').value = camera.collection;
+  $('newKind').value = camera.kind ?? 'iframe';
+  $('newEmbed').value = camera.embed ?? '';
+  $('timezone').value = camera.schedule?.timezone ?? '';
+  $('liveRepeat').value = camera.schedule?.repeat === 'hourly' ? 'hourly' : 'daily';
+  $('liveStart').value = camera.schedule?.start ?? '';
+  $('liveEnd').value = camera.schedule?.end ?? '';
+  $('newOriginal').value = camera.original ?? '';
+  $('newDonation').value = camera.donation ?? '';
+  $('permission').checked = true;
+  $('addSubmit').textContent = 'Save changes';
+  $('cancelEdit').hidden = false;
+  $('formMessage').textContent = 'Editing ' + camera.title + '.';
+  $('newTitle').focus();
+  $('newTitle').scrollIntoView?.({ block: 'nearest' });
+}
+function stopEditing() {
+  editingId = null;
+  $('addForm').reset();
+  $('addSubmit').textContent = 'Add camera';
+  $('cancelEdit').hidden = true;
+}
+function adoptCurrent(streams) {
+  const edited = current && streams.find(stream => stream?.id === current.id);
+  if (!edited) return null;
+  if (edited.embed === current.embed && edited.kind === current.kind) {
+    current = edited;
+    return null;
+  }
+  return edited;
+}
+function drawList(){const pool=eligible();const root=$('sources');root.replaceChildren();const heading=document.createElement('h3');heading.textContent='Saved cameras ('+state.streams.length+')';root.append(heading);for(const s of state.streams.filter(Boolean)){const entry=document.createElement('div');entry.className='item';const name=document.createElement('strong');name.textContent=s.title;const desc=document.createElement('small');desc.textContent=s.institution+' · '+s.collection;const row=document.createElement('div');row.className='row';const play=document.createElement('button');play.textContent='Play';play.disabled=!pool.includes(s);play.onclick=()=>{if(eligible().includes(s))playStream(s,true)};const edit=document.createElement('button');edit.textContent='Edit';edit.setAttribute('aria-label','Edit '+s.title);edit.onclick=()=>editCamera(s);const remove=document.createElement('button');remove.textContent='Remove';remove.onclick=()=>{if(editingId===s.id)stopEditing();state.streams=state.streams.filter(x=>x.id!==s.id);for(const list of state.playlists)list.cameraIds=list.cameraIds.filter(id=>id!==s.id);save();drawPlaylists();drawList();refreshEligibility();schedule();};row.append(play,edit,remove);entry.append(name,desc,row);root.append(entry)}}
 function display() {
   if (controlledWallpaper) publishStatus();
   const isYouTubeSource = current?.kind === 'youtube';
@@ -781,16 +819,30 @@ $('addForm').onsubmit=e=>{e.preventDefault();const embed=https($('newEmbed').val
    $('formMessage').textContent = 'Wallpaper sources need a direct video URL.';
    return;
  }
- let schedule;
+ let liveHours;
  try {
-   schedule = liveWindow($('timezone').value.trim(), $('liveStart').value, $('liveEnd').value);
+   liveHours = liveWindow($('timezone').value.trim(), $('liveStart').value, $('liveEnd').value, $('liveRepeat').value);
  } catch {
-   $('formMessage').textContent='Enter a valid IANA time zone and two different live times.';
+   $('formMessage').textContent = $('liveRepeat').value === 'hourly'
+     ? 'Enter a valid IANA time zone and live times with different minutes.'
+     : 'Enter a valid IANA time zone and two different live times.';
    return;
  }
- const s={kind,schedule,id:crypto.randomUUID?.()||String(Date.now())+Math.random(),title:$('newTitle').value.trim(),institution:$('newInstitution').value.trim(),collection:$('newCollection').value,embed,original,donation};
+ const editing = editingId && state.streams.find(x => x?.id === editingId);
+ const s={kind,schedule:liveHours,id:editing?editing.id:crypto.randomUUID?.()||String(Date.now())+Math.random(),title:$('newTitle').value.trim(),institution:$('newInstitution').value.trim(),collection:$('newCollection').value,embed,original,donation};
  if(!s.title||!s.institution)return;
- state.streams.push(s);save();drawPlaylists();drawList();$('addForm').reset();$('formMessage').textContent='Camera saved locally. Playback and liveness are not verified.';refreshEligibility();schedule()};
+ if(editing){
+   state.streams=state.streams.map(x=>x===editing?s:x);
+   const restart=adoptCurrent(state.streams);
+   stopEditing();
+   save();drawPlaylists();drawList();
+   $('formMessage').textContent='Camera updated. Playback and liveness are not verified.';
+   if(restart&&!controls&&eligible().includes(restart))playStream(restart,false);
+ } else {
+   state.streams.push(s);save();drawPlaylists();drawList();$('addForm').reset();$('formMessage').textContent='Camera saved locally. Playback and liveness are not verified.';
+ }
+ refreshEligibility();schedule()};
+$('cancelEdit').onclick=()=>{stopEditing();$('formMessage').textContent='';};
 window.addEventListener('keydown', e => {
   if (e.key === 'Escape') {
     if (activeCategory) openCategory(null);
@@ -843,10 +895,9 @@ function applySharedSettings(data) {
   const settings = readSettings(data);
   if (JSON.stringify(state) === JSON.stringify(settings)) return;
   const changedPlaylist = state.activePlaylist !== settings.activePlaylist;
-  const replacement = settings.streams.find(stream => current && stream?.id === current.id
-    && stream.embed === current.embed && stream.kind === current.kind);
-  if (replacement) current = replacement;
+  const restart = adoptCurrent(settings.streams);
   state = settings;
+  if (editingId && !state.streams.some(stream => stream?.id === editingId)) stopEditing();
   drawPlaylists();
   drawRotationSettings();
   $('startMuted').checked = $('video').defaultMuted = $('video').muted = state.muted;
@@ -854,6 +905,7 @@ function applySharedSettings(data) {
   $('showInfo').checked = state.showInfo;
   for (const col of defaults.enabled) $(col.toLowerCase()).checked = state.enabled.includes(col);
   drawList();
+  if (restart && !controls && eligible().includes(restart)) playStream(restart, false);
   refreshEligibility(changedPlaylist);
   updateYouTube();
   display();

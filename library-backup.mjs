@@ -32,7 +32,8 @@ function readCamera(camera) {
     throw new Error('A camera has an invalid player, collection, or HTTPS URL.');
   }
   const schedule = camera.schedule
-    ? liveWindow(camera.schedule.timezone, camera.schedule.start, camera.schedule.end) : null;
+    ? liveWindow(camera.schedule.timezone, camera.schedule.start, camera.schedule.end,
+      camera.schedule.repeat ?? 'daily') : null;
   return { id: identifier(camera.id), title: label(camera.title, 100), institution: label(camera.institution, 100),
     kind, collection, embed, original, donation, schedule };
 }

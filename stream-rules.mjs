@@ -25,27 +25,33 @@ export function youtubeVideoId(value) {
   return /^[A-Za-z0-9_-]{11}$/.test(id ?? '') ? id : null;
 }
 
-export function liveWindow(timezone, start, end) {
+// repeat 'daily' compares HH:MM; 'hourly' compares only the minutes, so 00:00–00:05
+// means the first five minutes of every hour.
+export function liveWindow(timezone, start, end, repeat = 'daily') {
   if (!timezone && !start && !end) return null;
   const time = /^(?:[01]\d|2[0-3]):[0-5]\d$/;
-  if (!timezone || !time.test(start) || !time.test(end) || start === end) {
+  const hourly = repeat === 'hourly';
+  if (!['daily', 'hourly'].includes(repeat) || !timezone || !time.test(start) || !time.test(end)
+      || (hourly ? start.slice(3) === end.slice(3) : start === end)) {
     throw new Error('Enter an IANA time zone and two different live times.');
   }
   new Intl.DateTimeFormat('en', { timeZone: timezone });
-  return { timezone, start, end };
+  return hourly ? { timezone, start, end, repeat } : { timezone, start, end };
 }
 
 export function inLiveWindow(schedule, now = new Date()) {
   if (!schedule) return true;
   try {
-    const window = liveWindow(schedule.timezone, schedule.start, schedule.end);
+    const window = liveWindow(schedule.timezone, schedule.start, schedule.end, schedule.repeat ?? 'daily');
     if (!window) return false;
-    const clock = new Intl.DateTimeFormat('en-GB', {
+    let clock = new Intl.DateTimeFormat('en-GB', {
       timeZone: window.timezone, hour: '2-digit', minute: '2-digit', hourCycle: 'h23'
     }).format(now);
-    return window.start < window.end
-      ? clock >= window.start && clock < window.end
-      : clock >= window.start || clock < window.end;
+    let { start, end } = window;
+    if (window.repeat === 'hourly') [clock, start, end] = [clock, start, end].map(value => value.slice(3));
+    return start < end
+      ? clock >= start && clock < end
+      : clock >= start || clock < end;
   } catch {
     return false;
   }

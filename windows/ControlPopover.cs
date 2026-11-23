@@ -20,6 +20,7 @@ public sealed class ControlPopover : Form
     private readonly Timer desktopTimer = new Timer { Interval = 500 };
     private readonly JavaScriptSerializer json = new JavaScriptSerializer();
     private readonly Uri controlsUrl;
+    private readonly string launcher;
     private readonly NotifyIcon tray;
     private readonly ContextMenuStrip trayMenu = new ContextMenuStrip();
     private bool popupOpen;
@@ -27,12 +28,14 @@ public sealed class ControlPopover : Form
     private bool reportingVisibility;
     private bool exiting;
     private bool fileDialogOpen;
+    private DateTime lastServerContact = DateTime.UtcNow;
 
     protected override bool ShowWithoutActivation { get { return true; } }
 
-    private ControlPopover(Uri url, string profile)
+    private ControlPopover(Uri url, string profile, string launcherPath)
     {
         controlsUrl = url;
+        launcher = launcherPath;
         Text = "Livestream Roulette Controls";
         FormBorderStyle = FormBorderStyle.None;
         StartPosition = FormStartPosition.Manual;
@@ -45,8 +48,17 @@ public sealed class ControlPopover : Form
         Region = emptyRegion;
         PlaceAboveTaskbar();
 
+        var startAtSignIn = new ToolStripMenuItem("Start at sign-in");
+        startAtSignIn.Click += delegate { ToggleStartAtSignIn(startAtSignIn); };
+        trayMenu.Items.Add(startAtSignIn);
+        trayMenu.Items.Add(new ToolStripSeparator());
         trayMenu.Items.Add("Exit Livestream Roulette", null, delegate { ExitCompanion(); });
-        trayMenu.Opening += delegate { CloseControls(); };
+        trayMenu.Opening += delegate
+        {
+            CloseControls();
+            try { startAtSignIn.Checked = StartupRegistration.IsEnabled(launcher, controlsUrl.Port); }
+            catch (Exception) { startAtSignIn.Checked = false; }
+        };
         tray = new NotifyIcon
         {
             Icon = CreateTrayIcon(),
@@ -130,10 +142,19 @@ public sealed class ControlPopover : Form
                     client.Headers["Origin"] = controlsUrl.GetLeftPart(UriPartial.Authority);
                     await client.UploadStringTaskAsync(new Uri(controlsUrl, "/api/visibility"), "POST", json.Serialize(sample));
                 }
+                lastServerContact = DateTime.UtcNow;
             }
-            catch (WebException)
+            catch (WebException error)
             {
-                // The wallpaper treats missing measurements as covered.
+                // The wallpaper treats missing measurements as covered. Once the local server has been
+                // gone for a while, close the tray too so a relaunch starts from a clean state.
+                if (error.Status == WebExceptionStatus.ConnectFailure && !exiting && !fileDialogOpen
+                    && DateTime.UtcNow - lastServerContact > TimeSpan.FromSeconds(10))
+                {
+                    exiting = true;
+                    Console.WriteLine("The local server stopped, so the tray is closing.");
+                    Close();
+                }
             }
             finally
             {
@@ -149,6 +170,20 @@ public sealed class ControlPopover : Form
             tray.Dispose();
             trayMenu.Dispose();
         };
+    }
+
+    private void ToggleStartAtSignIn(ToolStripMenuItem item)
+    {
+        try
+        {
+            StartupRegistration.SetEnabled(launcher, controlsUrl.Port, !item.Checked);
+            item.Checked = StartupRegistration.IsEnabled(launcher, controlsUrl.Port);
+        }
+        catch (Exception error)
+        {
+            Console.Error.WriteLine(error);
+            tray.ShowBalloonTip(3500, "Livestream Roulette", "Could not change the sign-in setting.", ToolTipIcon.Warning);
+        }
     }
 
     private async void ExitCompanion()
@@ -374,11 +409,11 @@ public sealed class ControlPopover : Form
         web.CoreWebView2.PostWebMessageAsJson(json.Serialize(new { type, text }));
     }
 
-    public static void Open(string url, string profile)
+    public static void Open(string url, string profile, string launcher)
     {
         SetProcessDPIAware();
         Application.EnableVisualStyles();
-        using (var popover = new ControlPopover(new Uri(url), profile))
+        using (var popover = new ControlPopover(new Uri(url), profile, launcher))
             Application.Run(popover);
     }
 }

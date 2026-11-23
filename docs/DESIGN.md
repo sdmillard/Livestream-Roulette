@@ -71,7 +71,7 @@ The prototype supports native video and a browser-only generic iframe. Future pl
 
 ## Acceptance criteria for first browser prototype
 - Opens locally in a normal browser through `python -m http.server 8765`.
-- Can add and remove user-authorized HTTPS player URLs and save them locally. Editing existing entries is pending.
+- Can add and remove user-authorized HTTPS player URLs and save them locally. Saved cameras can be edited in place.
 - Rotates across enabled sources on an interval without immediate repeats (when more than one source).
 - Next, Previous and Stay Here work without navigation away from the page.
 - Preserves settings through refresh; supports clearing entries.

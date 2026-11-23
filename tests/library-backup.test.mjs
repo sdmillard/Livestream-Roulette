@@ -42,3 +42,9 @@ test('rejects oversized or invalid backups without changing the library', () => 
   assert.deepEqual(empty.streams, []);
   assert.deepEqual(empty.playlists, []);
 });
+
+test('keeps hourly live windows through a backup round trip', () => {
+  const schedule = { timezone: 'UTC', start: '00:00', end: '00:05', repeat: 'hourly' };
+  const received = importLibrary(exportLibrary({ ...source, streams: [{ ...camera, schedule }] }), empty);
+  assert.deepEqual(received.streams[0].schedule, schedule);
+});

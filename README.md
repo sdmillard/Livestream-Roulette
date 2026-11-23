@@ -6,7 +6,7 @@ Livestream Roulette rotates among publisher-authorized live cameras. Wildlife is
 
 1. From the repository root, run `python -m http.server 8765 --bind 127.0.0.1` with Python 3.
 2. Open `http://127.0.0.1:8765/` in a modern browser.
-3. Open **Menu → Settings → Cameras** in the lower-right corner. Add a camera with its official watch page, an authorized HTTPS media or player URL, and optional daily live hours in the camera's time zone.
+3. Open **Menu → Settings → Cameras** in the lower-right corner. Add a camera with its official watch page, an authorized HTTPS media or player URL, and optional live hours in the camera's time zone. Live hours can repeat daily or every hour; an hourly window uses only the minutes, so **Every hour** from 00:00 until 00:05 means the first five minutes of each hour. Use **Edit** on a saved camera to change it in place. Its playlists keep it.
 4. Choose collections in **Cameras** and an interval in **Rotation**. Choose **Custom** for an interval of 1 to 7,200 seconds. Short intervals give a video at least 15 seconds to start before skipping it. Use **Menu → Playback** for **Next**, **Back**, and **Stay here**.
 
 Open **Playback → Camera info** for source links and playback status. The on-stream info overlay is optional under **Settings → Display**.
@@ -23,7 +23,7 @@ The companion puts a Livestream Roulette icon in the Windows notification area. 
 2. In Wallpaper Engine, select **Open Wallpaper → Open from URL**. Enter `http://127.0.0.1:8768/?wallpaper=1&companion=1` and enable **Use Livestream Mode**.
 3. Click **Livestream Roulette** near the clock. It may appear under **Show hidden icons**. Add a publisher-authorized direct source under **Settings → Cameras**. A direct HLS source can use an HTTPS `.m3u8` URL if its server allows cross-origin playlist and segment requests. The native control and wallpaper read the shared settings from the local service. The settings file is stored in `%LOCALAPPDATA%/Livestream Roulette/settings.json`.
 
-**Close menu** dismisses the popover and keeps the tray icon and local server running. To stop the companion and wallpaper playback, right-click the tray icon and choose **Exit Livestream Roulette**. Use the launcher to start it again. Startup logs are in `%LOCALAPPDATA%/Livestream Roulette/Logs/8768`.
+**Close menu** dismisses the popover and keeps the tray icon and local server running. To stop the companion and wallpaper playback, right-click the tray icon and choose **Exit Livestream Roulette**. Use the launcher to start it again. To start the companion automatically, right-click the tray icon and check **Start at sign-in**. This adds a `Livestream Roulette` entry under `HKCU\Software\Microsoft\Windows\CurrentVersion\Run` that runs the launcher hidden. Uncheck it to remove the entry. If you move the repository folder, toggle it off and on again. When the launcher starts the local server, it first runs `git pull --ff-only` if the folder is on `main` with no uncommitted changes. Feature branches and local edits are left alone, and a failed pull only gets logged to `update.log`. Startup logs are in `%LOCALAPPDATA%/Livestream Roulette/Logs/8768`.
 
 To diagnose the connection, open `http://127.0.0.1:8768/?controls=1` in a regular browser. It uses the same settings and playback controls. Keep one control surface open while editing the camera list.
 
@@ -52,6 +52,7 @@ The separate Barn Owl Live trial remains at `http://127.0.0.1:8768/youtube-trial
 - Run `python -B -m unittest discover -s tests -p test_companion_server.py` for loopback settings persistence, command sequencing, and request validation.
 - Run `powershell.exe -NoProfile -ExecutionPolicy RemoteSigned -File .\tests\desktop-visibility.ps1` for Windows coverage geometry, including overlapping windows and off-screen rectangles.
 - Run `python -m http.server 8765 --bind 127.0.0.1` from the repository root and open `http://127.0.0.1:8765/tests/browser.html` in Chrome or Edge. Use a dedicated profile or private window. The page temporarily replaces this origin's settings and reports **PASS** or the first failed check. It covers browser controls, playlist persistence, automatic rotation, and the recovery screen with synthetic entries.
+- With that server running and Playwright and ffmpeg installed, run `node tests/stall-recovery.mjs`. It checks that a direct feed that stops mid-stream gets one reconnect and then hands over to another camera.
 
 See the [product and technical design](docs/DESIGN.md) for the roadmap.
 See the [running work log](docs/HANDOFF.md) for handoffs, verification status, and open work.

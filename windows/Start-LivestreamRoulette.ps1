@@ -30,6 +30,40 @@ function Wait-ForCompanionProcess {
     throw "$Name did not become ready. Check the logs in $logs."
 }
 
+function Invoke-Git {
+    param([string]$Git, [string]$Arguments, [int]$Seconds)
+
+    $info = [Diagnostics.ProcessStartInfo]::new($Git, $Arguments)
+    $info.WorkingDirectory = $root
+    $info.UseShellExecute = $false
+    $info.CreateNoWindow = $true
+    $info.RedirectStandardOutput = $true
+    $info.RedirectStandardError = $true
+    $info.EnvironmentVariables['GIT_TERMINAL_PROMPT'] = '0'
+    $process = [Diagnostics.Process]::Start($info)
+    $output = $process.StandardOutput.ReadToEndAsync()
+    $errors = $process.StandardError.ReadToEndAsync()
+    if (!$process.WaitForExit($Seconds * 1000)) {
+        $process.Kill()
+        return [pscustomobject]@{ Ok = $false; Text = "git $Arguments timed out after $Seconds seconds." }
+    }
+    [pscustomobject]@{ Ok = $process.ExitCode -eq 0; Text = ($output.Result + $errors.Result).Trim() }
+}
+
+# Fast-forwards a clean main checkout before the server starts. Feature branches and local
+# edits are left alone, and any failure only gets logged.
+function Update-FromMain {
+    $git = Get-Command git.exe -CommandType Application -ErrorAction SilentlyContinue | Select-Object -First 1
+    if (!$git) { return 'Skipped update: git.exe is not on PATH.' }
+    $branch = Invoke-Git $git.Source 'rev-parse --abbrev-ref HEAD' 10
+    if (!$branch.Ok) { return "Skipped update: $($branch.Text)" }
+    if ($branch.Text -ne 'main') { return "Skipped update: on branch $($branch.Text), not main." }
+    $status = Invoke-Git $git.Source 'status --porcelain --untracked-files=no' 10
+    if (!$status.Ok -or $status.Text) { return 'Skipped update: the folder has uncommitted changes.' }
+    $pull = Invoke-Git $git.Source 'pull --ff-only' 30
+    if ($pull.Ok) { "Updated from main: $($pull.Text)" } else { "Update failed, starting the current version: $($pull.Text)" }
+}
+
 $mutex = [Threading.Mutex]::new($false, "Local\LivestreamRouletteLauncher-$Port")
 $locked = $false
 try {
@@ -44,6 +78,8 @@ try {
     New-Item -ItemType Directory -Force -Path $logs | Out-Null
     $session = Get-CompanionSession
     if (!$session) {
+        try { $update = Update-FromMain } catch { $update = "Update failed, starting the current version: $_" }
+        Add-Content -LiteralPath (Join-Path $logs 'update.log') -Value ('{0:yyyy-MM-dd HH:mm:ss zzz} {1}' -f [DateTimeOffset]::Now, $update)
         $python = Get-Command python.exe -CommandType Application -ErrorAction SilentlyContinue
         if (!$python) { throw 'Install Python and make python.exe available on PATH.' }
         $server = Start-Process -FilePath $python.Source -ArgumentList @('companion_server.py', '--port', $Port) `
