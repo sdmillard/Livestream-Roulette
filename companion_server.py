@@ -37,6 +37,8 @@ class CompanionServer(HTTPServer):
         self.visibility = None
         self.visibility_time = 0
         self.controls_open = None
+        self.controls_request = None
+        self.trial_player_owner = None
         self.player_visibility = None
         self.player_area = None
 
@@ -81,6 +83,8 @@ class Handler(BaseHTTPRequestHandler):
                              "commands": list(server.commands), "status": server.status,
                              "visibility": visibility,
                              "controlsOpen": server.controls_open if visibility is not None else None,
+                             "controlsRequest": server.controls_request if visibility is not None else None,
+                             "trialPlayerMounted": server.trial_player_owner is not None,
                              "playerVisibility": server.player_visibility if visibility is not None else None,
                              "playerArea": server.player_area if visibility is not None else None})
         elif path in ASSETS:
@@ -131,13 +135,32 @@ class Handler(BaseHTTPRequestHandler):
                                     "id": data.get("id")})
         elif self.path == "/api/status":
             server.status = data
+        elif self.path == "/api/trial-player":
+            owner = data.get("owner")
+            mounted = data.get("mounted")
+            if not isinstance(owner, str) or len(owner) != 36 or type(mounted) is not bool:
+                self.reply(400, {"error": "Invalid player request"})
+                return
+            if mounted:
+                if (server.controls_open is not False or server.controls_request is not None
+                        or monotonic() - server.visibility_time > 2.5
+                        or not (server.player_visibility or 0) > 0.5
+                        or server.trial_player_owner not in (None, owner)):
+                    self.reply(409, {"error": "The player cannot be shown yet"})
+                    return
+                server.trial_player_owner = owner
+            elif server.trial_player_owner == owner:
+                server.trial_player_owner = None
         elif self.path == "/api/visibility":
             fraction = data.get("fraction")
             controls_open = data.get("controlsOpen")
+            controls_request = data.get("controlsRequest")
             player_visibility = data.get("playerVisibility")
             player_area = data.get("playerArea")
             if (type(fraction) not in (int, float) or not 0 <= fraction <= 1
                     or controls_open is not None and type(controls_open) is not bool
+                    or controls_request is not None and
+                    (not isinstance(controls_request, str) or len(controls_request) != 36)
                     or player_visibility is not None and
                     (type(player_visibility) not in (int, float) or not 0 <= player_visibility <= 1)
                     or player_area is not None and
@@ -148,6 +171,7 @@ class Handler(BaseHTTPRequestHandler):
                 return
             server.visibility = fraction
             server.controls_open = controls_open
+            server.controls_request = controls_request
             server.player_visibility = player_visibility
             server.player_area = player_area
             server.visibility_time = monotonic()

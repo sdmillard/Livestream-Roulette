@@ -30,7 +30,7 @@ Companion mode plays direct media while at least half of the primary desktop's w
 
 ### Barn Owl Live YouTube trial
 
-With the Windows companion running, open `http://127.0.0.1:8768/youtube-trial.html` in Wallpaper Engine URL Livestream Mode. This is a separate test wallpaper. It uses the official YouTube player for one camera, with the tray popover in a separate screen region. It starts muted when more than half of the player area is visible and removes the player when the popover opens or the area is covered past the threshold. Switch back to **Livestream Roulette Companion** in Wallpaper Engine to use the direct-feed playlist.
+With the Windows companion running, open `http://127.0.0.1:8768/youtube-trial.html` in Wallpaper Engine URL Livestream Mode. This separate test wallpaper uses the official YouTube player across the desktop working area. It starts muted when more than half of the player area is visible. The tray waits for the player iframe to be removed before showing the popover. The player can return after the popover closes. Switch back to **Livestream Roulette Companion** in Wallpaper Engine to use the direct-feed playlist.
 
 ## Run tests
 

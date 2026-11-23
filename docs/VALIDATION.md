@@ -40,6 +40,6 @@ After a buffering report, HLS suspension was changed to pause video and stop loa
 
 ## Windows tray and YouTube trial
 
-The user confirmed that the Windows notification-area icon opens the companion controls. For the separate Barn Owl Live trial, the native helper selects the larger player rectangle to the left of or above the popover, then measures visibility in that rectangle. The official YouTube iframe retains its branding and controls. The trial mounts it only with fresh geometry, a closed popover, and more than 50% measured visibility. It removes the iframe on coverage or when the tray popover opens.
+The user confirmed that the Windows notification-area icon opens the companion controls and that opening them hides the Barn Owl player. The trial now uses the full desktop working area. The local service grants either the player or the controls access to that space. The helper waits for iframe removal before showing the menu. The official YouTube iframe retains its branding and controls. The trial mounts it only with fresh geometry, a closed popover, and more than 50% measured visibility.
 
 Wallpaper Engine 2.8.42 reported playing the Barn Owl Live embed at 100% player visibility, removing the player at 12.2%, and playing again when uncovered. This was a single live-camera trial. Full occlusion timing, mixed-DPI or additional monitors, and desktop access to the native YouTube controls with Windows icons visible remain unverified. The regular playlist still uses direct sources.

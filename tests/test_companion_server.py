@@ -80,6 +80,28 @@ class CompanionTests(unittest.TestCase):
         self.assertIsNone(self.request("/api/session")["controlsOpen"])
         self.assertIsNone(self.request("/api/session")["playerArea"])
 
+    def test_player_and_popover_are_mutually_exclusive(self):
+        owner = "00000000-0000-0000-0000-000000000001"
+        request = "00000000-0000-0000-0000-000000000002"
+        visible = {"fraction": 1, "playerVisibility": 1, "controlsOpen": False}
+        self.request("/api/visibility", visible)
+        self.request("/api/trial-player", {"owner": owner, "mounted": True})
+
+        self.request("/api/visibility", {**visible, "controlsOpen": True, "controlsRequest": request})
+        session = self.request("/api/session")
+        self.assertEqual(session["controlsRequest"], request)
+        self.assertTrue(session["trialPlayerMounted"])
+
+        self.request("/api/trial-player", {"owner": owner, "mounted": False})
+        self.assertFalse(self.request("/api/session")["trialPlayerMounted"])
+        with self.assertRaises(HTTPError) as error:
+            self.request("/api/trial-player", {"owner": owner, "mounted": True})
+        self.assertEqual(error.exception.code, 409)
+
+        self.request("/api/visibility", visible)
+        self.request("/api/trial-player", {"owner": owner, "mounted": True})
+        self.assertTrue(self.request("/api/session")["trialPlayerMounted"])
+
 
 if __name__ == "__main__":
     unittest.main()

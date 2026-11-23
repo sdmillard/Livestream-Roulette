@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.Drawing;
 using System.Net;
 using System.Runtime.InteropServices;
+using System.Threading.Tasks;
 using System.Web.Script.Serialization;
 using System.Windows.Forms;
 using Microsoft.Web.WebView2.Core;
@@ -19,6 +20,7 @@ public sealed class ControlPopover : Form
     private readonly Uri controlsUrl;
     private readonly NotifyIcon tray;
     private bool popupOpen;
+    private string controlsRequest;
     private bool reportingVisibility;
 
     protected override bool ShowWithoutActivation { get { return true; } }
@@ -38,19 +40,15 @@ public sealed class ControlPopover : Form
         Region = emptyRegion;
         PlaceAboveTaskbar();
 
-        var trayMenu = new ContextMenuStrip();
-        trayMenu.Items.Add("Open Livestream Roulette", null, delegate { OpenControls(); });
-        trayMenu.Items.Add("Exit", null, delegate { Close(); });
         tray = new NotifyIcon
         {
             Icon = CreateTrayIcon(),
-            Text = "Livestream Roulette",
-            ContextMenuStrip = trayMenu
+            Text = "Livestream Roulette"
         };
         tray.MouseClick += delegate(object sender, MouseEventArgs args)
         {
-            if (args.Button != MouseButtons.Left) return;
-            if (popupOpen) CloseControls();
+            if (args.Button != MouseButtons.Left && args.Button != MouseButtons.Right) return;
+            if (controlsRequest != null) CloseControls();
             else OpenControls();
         };
 
@@ -101,14 +99,14 @@ public sealed class ControlPopover : Form
             {
                 var screen = Screen.PrimaryScreen;
                 var visible = DesktopVisibility.Measure(screen.WorkingArea, Handle);
-                var player = DesktopVisibility.PlayerArea(screen.WorkingArea, Bounds);
-                var playerVisible = DesktopVisibility.Measure(player, Handle);
+                var player = screen.WorkingArea;
                 var full = screen.Bounds;
                 var sample = new
                 {
                     fraction = visible,
-                    controlsOpen = popupOpen,
-                    playerVisibility = playerVisible,
+                    controlsOpen = controlsRequest != null,
+                    controlsRequest = controlsRequest,
+                    playerVisibility = visible,
                     playerArea = new
                     {
                         left = (double)(player.Left - full.Left) / full.Width,
@@ -141,7 +139,6 @@ public sealed class ControlPopover : Form
             tray.Visible = false;
             tray.Icon.Dispose();
             tray.Dispose();
-            trayMenu.Dispose();
         };
     }
 
@@ -167,23 +164,55 @@ public sealed class ControlPopover : Form
         }
     }
 
-    private void OpenControls()
+    private async void OpenControls()
     {
-        if (popupOpen || web.CoreWebView2 == null) return;
-        popupOpen = true;
-        PlaceAboveTaskbar();
-        Show();
-        Activate();
-        web.Focus();
-        web.CoreWebView2.PostWebMessageAsString("expand");
+        if (controlsRequest != null || web.CoreWebView2 == null) return;
+        var request = Guid.NewGuid().ToString();
+        controlsRequest = request;
+        try
+        {
+            using (var client = new WebClient { Proxy = null })
+            {
+                for (var attempt = 0; attempt < 24 && controlsRequest == request; attempt++)
+                {
+                    var body = await client.DownloadStringTaskAsync(new Uri(controlsUrl, "/api/session"));
+                    if (controlsRequest != request) return;
+                    var session = json.Deserialize<ControlSession>(body);
+                    if (session.controlsRequest == request && !session.trialPlayerMounted)
+                    {
+                        popupOpen = true;
+                        PlaceAboveTaskbar();
+                        Show();
+                        Activate();
+                        web.Focus();
+                        web.CoreWebView2.PostWebMessageAsString("expand");
+                        return;
+                    }
+                    await Task.Delay(125);
+                }
+            }
+        }
+        catch (WebException) {}
+        if (controlsRequest == request)
+        {
+            controlsRequest = null;
+            tray.ShowBalloonTip(2500, "Livestream Roulette", "Could not confirm the player was closed. Try again with the desktop visible.", ToolTipIcon.Info);
+        }
     }
 
     private void CloseControls()
     {
+        controlsRequest = null;
         if (!popupOpen) return;
         popupOpen = false;
         web.CoreWebView2.PostWebMessageAsString("collapse");
         Hide();
+    }
+
+    public sealed class ControlSession
+    {
+        public string controlsRequest { get; set; }
+        public bool trialPlayerMounted { get; set; }
     }
 
     private void PlaceAboveTaskbar()
@@ -222,6 +251,12 @@ public sealed class ControlPopover : Form
     private void SetInteractiveRegion(object sender, CoreWebView2WebMessageReceivedEventArgs args)
     {
         if (args.Source != controlsUrl.AbsoluteUri) return;
+        if (args.WebMessageAsJson == "\"exit-controls\"")
+        {
+            CloseControls();
+            Close();
+            return;
+        }
         if (args.WebMessageAsJson == "\"close-controls\"")
         {
             CloseControls();

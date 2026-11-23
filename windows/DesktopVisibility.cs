@@ -6,17 +6,6 @@ using System.Text;
 
 public static class DesktopVisibility
 {
-    public static Rectangle PlayerArea(Rectangle workingArea, Rectangle popover)
-    {
-        var left = Rectangle.FromLTRB(workingArea.Left, workingArea.Top,
-            Math.Max(workingArea.Left, popover.Left), workingArea.Bottom);
-        var upper = Rectangle.FromLTRB(workingArea.Left, workingArea.Top, workingArea.Right,
-            Math.Max(workingArea.Top, popover.Top));
-        var leftArea = (long)left.Width * left.Height;
-        var upperArea = (long)upper.Width * upper.Height;
-        return leftArea >= upperArea ? left : upper;
-    }
-
     private const int ExtendedFrameBounds = 9;
     private const int Cloaked = 14;
     private const uint DesktopReadObjects = 0x0001;

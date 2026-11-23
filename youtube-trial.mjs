@@ -2,12 +2,16 @@ const VIDEO_ID = 'AorGWrn-vx8';
 const stage = document.querySelector('#playerArea');
 const waiting = document.querySelector('#waiting');
 const label = document.querySelector('#trialStatus');
+const owner = crypto.randomUUID();
 let player;
 let frame;
 let sample;
 let api;
 let lastStatus;
 let failed = false;
+let reserving = false;
+let reserved = false;
+let releasing = false;
 
 function status(playback) {
   label.textContent = playback;
@@ -37,6 +41,24 @@ function playerApi() {
   return api;
 }
 
+function playerReservation(mounted, keepalive = false) {
+  return fetch('/api/trial-player', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ owner, mounted }),
+    keepalive,
+    signal: keepalive ? undefined : AbortSignal.timeout(1500)
+  });
+}
+
+function releasePlayer() {
+  if (!reserved || releasing || reserving) return;
+  releasing = true;
+  void playerReservation(false).then(response => {
+    if (response.ok) reserved = false;
+  }).catch(() => {}).finally(() => { releasing = false; });
+}
+
 function removePlayer() {
   const previous = player;
   frame = undefined;
@@ -44,6 +66,7 @@ function removePlayer() {
   previous?.destroy();
   stage.replaceChildren();
   waiting.hidden = false;
+  releasePlayer();
 }
 
 function unavailableReason() {
@@ -58,15 +81,37 @@ function unavailableReason() {
   return '';
 }
 
-function reconcile() {
+async function reconcile() {
   const reason = unavailableReason();
   if (reason) {
     failed = false;
     if (frame) removePlayer();
+    else releasePlayer();
     status(reason);
     return;
   }
-  if (frame || failed) return;
+  if (frame || failed || reserving || releasing) return;
+  if (reserved) {
+    releasePlayer();
+    return;
+  }
+  reserving = true;
+  try {
+    // The service reserves the player before we mount it, blocking the tray
+    // from showing during the asynchronous YouTube setup.
+    const response = await playerReservation(true);
+    if (!response.ok) return;
+    reserved = true;
+  } catch {
+    reserved = true;
+    return;
+  } finally {
+    reserving = false;
+  }
+  if (unavailableReason()) {
+    releasePlayer();
+    return;
+  }
 
   const embed = document.createElement('iframe');
   embed.title = 'Barn Owl Live on YouTube';
@@ -95,7 +140,7 @@ function reconcile() {
         onReady(event) {
           if (frame !== embed) return;
           if (unavailableReason()) {
-            reconcile();
+            void reconcile();
             return;
           }
           event.target.mute();
@@ -126,10 +171,14 @@ async function poll() {
   } catch {
     sample = undefined;
   }
-  reconcile();
+  void reconcile();
   setTimeout(poll, 500);
 }
 
 document.addEventListener('visibilitychange', reconcile);
 window.addEventListener('resize', reconcile);
+window.addEventListener('pagehide', () => {
+  if (frame) removePlayer();
+  if (reserved || reserving) void playerReservation(false, true).catch(() => {});
+});
 void poll();
