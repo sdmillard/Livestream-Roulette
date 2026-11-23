@@ -13,4 +13,4 @@ Reviewed November 22, 2026. The current wallpaper plays direct HTTPS video and H
 
 AGH is the first technical lead because a direct URL is published. Monterey is the first aquarium lead. Request permission for a private pilot separately from any inclusion in a distributed default catalog. If approved, record source credit and expected live hours, then verify playback, current footage, and behavior when the camera goes offline.
 
-A November 22 header-only request to the AGH endpoint timed out. The university directory's earlier browser check remains the available playback evidence. The timeout alone cannot establish whether the stream is offline.
+A November 22 header-only request to the AGH endpoint timed out. A later GET returned a continuous response, the [official player](https://live.cri.agh.edu.pl/video/stream5.shtml) decoded 1280-pixel video, and Wallpaper Engine reported playback when the source was selected in a personal local playlist. Catalog permission and the camera's live hours remain unconfirmed.
