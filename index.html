@@ -56,14 +56,28 @@ fieldset label{margin:9px 0}
 .controls #menu:hover,.controls #menu:focus-visible,.controls #menu[aria-expanded="true"]{background:#285467;border-color:#81cbeb}
 .controls .menu-label{display:none}
 .controls .menu-actions,.controls .submenu{background:#0b1c26}
-.tray-controls #menu{visibility:hidden}
-.tray-controls .menu-actions{bottom:0}
-.tray-controls .submenu{translate:0 44px}
+#controlCascade{display:contents}
 @media(max-width:480px){.meta{top:auto;bottom:60px;left:8px;max-width:calc(100% - 16px)}}
 @media(max-width:540px){.menu-actions{width:max-content;grid-auto-flow:column}.menu-actions button{white-space:nowrap}.submenu{right:12px;bottom:146px;width:min(400px,calc(100vw - 24px));max-height:calc(100dvh - 158px)}.settings-categories{width:min(350px,calc(100vw - 24px));grid-template-columns:repeat(3,minmax(0,1fr))}.settings-categories button{padding:8px 4px;text-align:center}.settings-detail{bottom:206px;max-height:calc(100dvh - 218px)}}
 @media(max-width:540px){.playback{grid-template-columns:repeat(2,minmax(0,1fr))}.camera-detail{bottom:282px;max-height:calc(100dvh - 294px)}}
 .wallpaper .submenu{max-height:calc(100dvh - 72px - var(--taskbar-clearance))}
 @media(max-width:540px){.wallpaper .submenu{max-height:calc(100dvh - 158px - var(--taskbar-clearance))}.wallpaper .settings-detail{max-height:calc(100dvh - 218px - var(--taskbar-clearance))}.wallpaper .camera-detail{max-height:calc(100dvh - 294px - var(--taskbar-clearance))}}
+.tray-controls #controlCascade{position:fixed;inset:12px 12px 8px;display:flex;flex-direction:row-reverse;align-items:flex-end;gap:4px;pointer-events:none}
+.tray-controls #menu{display:none}
+.tray-controls .toolbar,.tray-controls .menu-actions,.tray-controls .submenu{position:static;translate:none;pointer-events:auto}
+.tray-controls .toolbar{flex:none}
+.tray-controls .menu-actions,.tray-controls .settings-categories,.tray-controls .playback{width:132px;grid-auto-flow:row;grid-template-columns:minmax(0,1fr);padding:6px}
+.tray-controls .settings-categories,.tray-controls .playback{flex:none}
+.tray-controls .settings-categories button{text-align:left}
+.tray-controls .submenu{max-height:100%}
+.tray-controls .settings-detail{width:360px;min-width:0;overflow-wrap:anywhere}
+@media(max-width:480px){
+  .tray-controls #controlCascade{flex-direction:column-reverse}
+  .tray-controls .menu-actions,.tray-controls .settings-categories,.tray-controls .playback{width:auto;grid-auto-flow:column;grid-template-columns:none;grid-auto-columns:minmax(0,1fr)}
+  .tray-controls .toolbar,.tray-controls .settings-categories,.tray-controls .playback,.tray-controls .settings-detail{width:min(360px,100%)}
+  .tray-controls .menu-actions button{white-space:normal}
+  .tray-controls .settings-detail{min-height:0}
+}
 </style>
 </head>
 <body>
@@ -71,6 +85,7 @@ fieldset label{margin:9px 0}
 <div id="youtubeArea"></div>
 <img id="youtubeStandby" alt="Standby photo by Barn Owl Live" referrerpolicy="no-referrer" hidden>
 <section id="meta" class="meta" hidden aria-live="polite"><h2 id="title"></h2><p id="institution"></p><a id="original" target="_blank" rel="noopener noreferrer" hidden>Watch original</a><a id="donation" target="_blank" rel="noopener noreferrer" hidden>Support source</a></section>
+<div id="controlCascade">
 <nav class="toolbar" aria-label="Playback controls">
 <div id="menuActions" class="menu-actions" hidden>
 <button id="playback" aria-expanded="false" aria-controls="playbackPanel">‹ Playback</button>
@@ -157,6 +172,7 @@ fieldset label{margin:9px 0}
 <p><a href="https://www.montereybayaquarium.org/cams-videos/live-cams/jelly-cam" target="_blank" rel="noopener noreferrer">Monterey Bay Aquarium — Jelly Cam</a></p>
 <p class="note">Some official streams substitute prerecorded footage outside live hours. Published live hours help avoid scheduled replays.</p>
 </aside>
+</div>
 <script type="module">
 import { httpsUrl as https, isYouTube, youtubeVideoId, liveWindow, canPlay, directPlaybackIsVisible, validCustomInterval, rotationDelayMs } from './stream-rules.mjs';
 import { connectCompanion, reportControlBounds } from './companion.mjs';

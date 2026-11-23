@@ -101,6 +101,28 @@ try {
   check(el('player').hidden, 'Collection changes clear ineligible players while held');
   frame.remove();
 
+  const tray = await openApp('?controls=1');
+  const trayDoc = tray.contentDocument;
+  trayDoc.body.classList.add('tray-controls');
+  const trayEl = id => trayDoc.getElementById(id);
+  trayEl('dismissControls').hidden = false;
+  trayEl('menu').click();
+  trayEl('settings').click();
+  trayEl('playlistsCategory').click();
+  trayEl('newPlaylist').click();
+  const bounds = id => trayEl(id).getBoundingClientRect();
+  tray.style.cssText = 'width:540px;height:520px';
+  check(bounds('playlistSettings').right < bounds('panel').left
+    && bounds('panel').right < bounds('menuActions').left, 'Tray menus cascade to the left without overlap');
+  check(bounds('playlistSettings').bottom === bounds('menuActions').bottom, 'Tray panels share a taskbar anchor');
+  trayEl('camerasCategory').click();
+  tray.style.cssText = 'width:360px;height:400px';
+  check(bounds('cameraSettings').bottom < bounds('panel').top
+    && bounds('panel').bottom < bounds('menuActions').top, 'Narrow tray stacks panels without overlap');
+  check(bounds('cameraSettings').top >= 0 && trayEl('cameraSettings').scrollHeight > trayEl('cameraSettings').clientHeight,
+    'Tall settings stay in the tray and scroll');
+  tray.remove();
+
   const wallpaper = await openApp('?wallpaper=1');
   check(!wallpaper.contentDocument.getElementById('wildlife').checked, 'Settings persisted');
   check(wallpaper.contentDocument.getElementById('player').hidden, 'Wallpaper mode skips generic iframe');
