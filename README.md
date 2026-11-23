@@ -31,6 +31,8 @@ Companion mode plays direct media while at least half of the primary desktop's w
 
 Open **Settings → Playlists** to create a named playlist from your saved cameras. Select it under **Play from**, or choose **All cameras** for the full library. The collection filters, live schedules, and YouTube preference still apply. Saving a new playlist selects it. Deleting a playlist keeps its cameras in the library.
 
+Use **Playback → Playlist** to switch playlists without opening the editor. If the current camera is eligible in the new playlist, it keeps playing. Otherwise the app selects an eligible camera and preserves **Stay here**.
+
 Use **Export library** in that menu to save your cameras and playlists as a JSON file. **Import library** merges a backup into the current library and preserves your active playlist and playback preferences. Import backups from sources you trust and use cameras the publisher permits.
 
 For direct video and the official YouTube player, playback errors or a sustained wait trigger one reconnect. If it still fails, rotation skips the camera for about a minute and retries when it becomes eligible again. **Stay here** keeps retries on the selected camera. When every camera is unavailable, playback waits on the last available direct-video frame or a status screen.

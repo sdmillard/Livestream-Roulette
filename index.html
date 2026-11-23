@@ -62,7 +62,7 @@ fieldset label{margin:9px 0}
 #controlCascade{display:contents}
 @media(max-width:480px){.meta{top:auto;bottom:60px;left:8px;max-width:calc(100% - 16px)}}
 @media(max-width:540px){.menu-actions{width:max-content;grid-auto-flow:column}.menu-actions button{white-space:nowrap}.submenu{right:12px;bottom:146px;width:min(400px,calc(100vw - 24px));max-height:calc(100dvh - 158px)}.settings-categories{width:min(350px,calc(100vw - 24px));grid-template-columns:repeat(3,minmax(0,1fr))}.settings-categories button{padding:8px 4px;text-align:center}.settings-detail{bottom:206px;max-height:calc(100dvh - 218px)}}
-@media(max-width:540px){.playback{grid-template-columns:repeat(2,minmax(0,1fr))}.camera-detail{bottom:282px;max-height:calc(100dvh - 294px)}}
+@media(max-width:540px){.playback{grid-template-columns:repeat(2,minmax(0,1fr));padding:8px}.playback button{padding:6px 8px}.camera-detail{bottom:282px;max-height:calc(100dvh - 294px)}}
 .wallpaper .submenu{max-height:calc(100dvh - 72px - var(--taskbar-clearance))}
 @media(max-width:540px){.wallpaper .submenu{max-height:calc(100dvh - 158px - var(--taskbar-clearance))}.wallpaper .settings-detail{max-height:calc(100dvh - 218px - var(--taskbar-clearance))}.wallpaper .camera-detail{max-height:calc(100dvh - 294px - var(--taskbar-clearance))}}
 .tray-controls #controlCascade{position:fixed;inset:12px 12px 8px;display:flex;flex-direction:row-reverse;align-items:flex-end;gap:4px;pointer-events:none}
@@ -77,6 +77,7 @@ fieldset label{margin:9px 0}
 @media(max-width:480px){
   .tray-controls #controlCascade{flex-direction:column-reverse}
   .tray-controls .menu-actions,.tray-controls .settings-categories,.tray-controls .playback{width:auto;grid-auto-flow:column;grid-template-columns:none;grid-auto-columns:minmax(0,1fr)}
+  .tray-controls .playback{grid-auto-flow:row;grid-template-columns:repeat(2,minmax(0,1fr))}
   .tray-controls .toolbar,.tray-controls .settings-categories,.tray-controls .playback,.tray-controls .settings-detail{width:min(360px,100%)}
   .tray-controls .menu-actions button{white-space:normal}
   .tray-controls .settings-detail{min-height:0}
@@ -102,7 +103,12 @@ fieldset label{margin:9px 0}
 <button id="next" title="Next camera">Next →</button>
 <button id="hold" aria-pressed="false" title="Stop automatic rotation">Stay here</button>
 <button id="info" aria-expanded="false" aria-controls="cameraDetails">‹ Camera info</button>
+<button id="quickPlaylistCategory" aria-expanded="false" aria-controls="quickPlaylistPanel">‹ Playlist</button>
 </section>
+<aside id="quickPlaylistPanel" class="submenu settings-detail camera-detail" hidden aria-labelledby="quickPlaylistHeading">
+<h2 id="quickPlaylistHeading">Playlist</h2>
+<label for="quickPlaylist">Play from</label><select id="quickPlaylist"></select>
+</aside>
 <aside id="cameraDetails" class="submenu settings-detail camera-detail" hidden aria-labelledby="cameraDetailsHeading">
 <h2 id="cameraDetailsHeading" tabindex="-1">Camera info</h2>
 <p id="noCamera">No camera selected.</p>
@@ -566,6 +572,7 @@ const branches = {
 let activeBranch = null;
 const categories = {
   info: 'cameraDetails',
+  quickPlaylistCategory: 'quickPlaylistPanel',
   rotationCategory: 'rotationSettings',
   displayCategory: 'displaySettings',
   camerasCategory: 'cameraSettings',
@@ -610,10 +617,12 @@ for (const id of Object.keys(categories)) {
 
 let editingNewPlaylist = false;
 function drawPlaylists() {
-  const selector = $('activePlaylist');
-  selector.replaceChildren(new Option('All cameras', ''));
-  for (const list of state.playlists) selector.add(new Option(list.name, list.id));
-  selector.value = state.activePlaylist ?? '';
+  for (const id of ['activePlaylist', 'quickPlaylist']) {
+    const selector = $(id);
+    selector.replaceChildren(new Option('All cameras', ''));
+    for (const list of state.playlists) selector.add(new Option(list.name, list.id));
+    selector.value = state.activePlaylist ?? '';
+  }
   const list = editingNewPlaylist ? null : state.playlists.find(item => item.id === state.activePlaylist);
   $('playlistForm').hidden = !editingNewPlaylist && !list;
   $('deletePlaylist').hidden = !list;
@@ -632,15 +641,17 @@ function drawPlaylists() {
 }
 
 function changePlaylist(id) {
+  const changed = state.activePlaylist !== id;
   state.activePlaylist = id;
   editingNewPlaylist = false;
   save();
   drawPlaylists();
   drawList();
-  refreshEligibility();
+  refreshEligibility(changed);
 }
 
 $('activePlaylist').onchange = () => changePlaylist($('activePlaylist').value || null);
+$('quickPlaylist').onchange = () => changePlaylist($('quickPlaylist').value || null);
 $('newPlaylist').onclick = () => {
   editingNewPlaylist = true;
   drawPlaylists();
@@ -795,7 +806,7 @@ window.addEventListener('keydown', e => {
   if (e.key === 'ArrowLeft') runAction('previous');
 });
 let lastPool = '';
-function refreshEligibility() {
+function refreshEligibility(chooseWhileHeld = false) {
   for (const [id, until] of failed) {
     if (Date.now() >= until) failed.delete(id);
   }
@@ -808,10 +819,10 @@ function refreshEligibility() {
   }
   if (controls) return;
   if (current && !pool.includes(current)) {
-    if (hold) playStream(null, false);
+    if (hold && !chooseWhileHeld) playStream(null, false);
     else pickNext();
   } else if (!current && pool.length) {
-    if (!hold) pickNext();
+    if (!hold || chooseWhileHeld) pickNext();
     else {
       const stream = pool.find(candidate => candidate.id === retryHeldId);
       if (stream) playStream(stream, false);
@@ -831,6 +842,7 @@ drawList();
 function applySharedSettings(data) {
   const settings = readSettings(data);
   if (JSON.stringify(state) === JSON.stringify(settings)) return;
+  const changedPlaylist = state.activePlaylist !== settings.activePlaylist;
   const replacement = settings.streams.find(stream => current && stream?.id === current.id
     && stream.embed === current.embed && stream.kind === current.kind);
   if (replacement) current = replacement;
@@ -842,7 +854,7 @@ function applySharedSettings(data) {
   $('showInfo').checked = state.showInfo;
   for (const col of defaults.enabled) $(col.toLowerCase()).checked = state.enabled.includes(col);
   drawList();
-  refreshEligibility();
+  refreshEligibility(changedPlaylist);
   updateYouTube();
   display();
   schedule();

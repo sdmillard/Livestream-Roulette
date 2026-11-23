@@ -89,6 +89,20 @@ try {
   el('playlistForm').requestSubmit();
   const playlistId = el('activePlaylist').value;
   check(playlistId && buttons()[1].disabled, 'Creating a playlist limits manual playback to its members');
+  el('playback').click();
+  el('quickPlaylistCategory').click();
+  check(!el('quickPlaylistPanel').hidden && !el('playbackPanel').hidden, 'Playlist switcher opens beside Playback');
+  check(el('quickPlaylist').value === playlistId, 'Playback shows the active playlist');
+  el('quickPlaylist').value = '';
+  el('quickPlaylist').dispatchEvent(new Event('change'));
+  check(el('activePlaylist').value === '' && !buttons()[1].disabled, 'Playback can switch to all cameras');
+  buttons()[1].click();
+  el('quickPlaylist').value = playlistId;
+  el('quickPlaylist').dispatchEvent(new Event('change'));
+  check(el('activePlaylist').value === playlistId && buttons()[1].disabled
+    && el('player').getAttribute('src') === stream('first').embed, 'Quick switch updates playback and the editor while held');
+  el('settings').click();
+  el('playlistsCategory').click();
   el('playlistName').value = 'Renamed';
   el('playlistForm').requestSubmit();
   check(el('activePlaylist').selectedOptions[0].text === 'Renamed', 'Playlist can be renamed');
