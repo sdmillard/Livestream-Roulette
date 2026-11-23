@@ -6,6 +6,7 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 import json
 import os
 from pathlib import Path
+from threading import Thread
 from time import monotonic
 from urllib.parse import urlsplit
 from uuid import uuid4
@@ -117,6 +118,11 @@ class Handler(BaseHTTPRequestHandler):
             self.reply(400, {"error": "Invalid request body"})
             return
 
+        if self.path == "/api/shutdown":
+            self.reply(200, {"ok": True})
+            # serve_forever must be shut down from outside its request thread.
+            Thread(target=server.shutdown).start()
+            return
         if self.path == "/api/settings":
             streams = data.get("streams")
             enabled = data.get("enabled")

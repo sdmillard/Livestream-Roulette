@@ -19,9 +19,11 @@ public sealed class ControlPopover : Form
     private readonly JavaScriptSerializer json = new JavaScriptSerializer();
     private readonly Uri controlsUrl;
     private readonly NotifyIcon tray;
+    private readonly ContextMenuStrip trayMenu = new ContextMenuStrip();
     private bool popupOpen;
     private string controlsRequest;
     private bool reportingVisibility;
+    private bool exiting;
 
     protected override bool ShowWithoutActivation { get { return true; } }
 
@@ -40,14 +42,17 @@ public sealed class ControlPopover : Form
         Region = emptyRegion;
         PlaceAboveTaskbar();
 
+        trayMenu.Items.Add("Exit Livestream Roulette", null, delegate { ExitCompanion(); });
+        trayMenu.Opening += delegate { CloseControls(); };
         tray = new NotifyIcon
         {
             Icon = CreateTrayIcon(),
-            Text = "Livestream Roulette"
+            Text = "Livestream Roulette",
+            ContextMenuStrip = trayMenu
         };
         tray.MouseClick += delegate(object sender, MouseEventArgs args)
         {
-            if (args.Button != MouseButtons.Left && args.Button != MouseButtons.Right) return;
+            if (args.Button != MouseButtons.Left || exiting) return;
             if (controlsRequest != null) CloseControls();
             else OpenControls();
         };
@@ -139,7 +144,33 @@ public sealed class ControlPopover : Form
             tray.Visible = false;
             tray.Icon.Dispose();
             tray.Dispose();
+            trayMenu.Dispose();
         };
+    }
+
+    private async void ExitCompanion()
+    {
+        if (exiting) return;
+        exiting = true;
+        try
+        {
+            using (var client = new WebClient { Proxy = null })
+            {
+                client.Headers[HttpRequestHeader.ContentType] = "application/json";
+                client.Headers["Origin"] = controlsUrl.GetLeftPart(UriPartial.Authority);
+                await client.UploadStringTaskAsync(new Uri(controlsUrl, "/api/shutdown"), "POST", "{}");
+            }
+        }
+        catch (WebException error)
+        {
+            if (error.Status != WebExceptionStatus.ConnectFailure)
+            {
+                exiting = false;
+                tray.ShowBalloonTip(3500, "Livestream Roulette", "Could not stop the local server. Try again.", ToolTipIcon.Warning);
+                return;
+            }
+        }
+        Close();
     }
 
     private static Icon CreateTrayIcon()

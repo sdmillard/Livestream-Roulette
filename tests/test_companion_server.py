@@ -43,6 +43,14 @@ class CompanionTests(unittest.TestCase):
         self.assertEqual(self.request("/api/session")["settings"], settings)
         self.assertEqual(json.loads(self.settings_path.read_text()), settings)
 
+    def test_shutdown_requires_local_origin_and_stops_serving(self):
+        with self.assertRaises(HTTPError) as error:
+            self.request("/api/shutdown", {}, origin="https://example.org")
+        self.assertEqual(error.exception.code, 403)
+        self.assertEqual(self.request("/api/shutdown", {}), {"ok": True})
+        self.thread.join(timeout=3)
+        self.assertFalse(self.thread.is_alive())
+
     def test_commands_preserve_order_and_publish_wallpaper_status(self):
         self.request("/api/command", {"action": "next"})
         self.request("/api/command", {"action": "play", "id": "owl"})
